@@ -30,6 +30,7 @@ Tensor cpu_tensor_add(const Tensor &a, const Tensor &b)
 Tensor cpu_tensor_mul_2d(const Tensor& a, const Tensor &b)
 {
     if (a.shape[1] != b.shape[0]) {
+        printf("%d  -   %d\n", a.shape[1], b.shape[0]);
         throw std::runtime_error("Invalid shapes of Tensor a & b. Cannot multiply");
     }
 

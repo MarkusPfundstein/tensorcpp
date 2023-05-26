@@ -120,6 +120,34 @@ Tensor gpu_tensor_add(const Tensor& a, const Tensor &b)
 	return out;
 }
 
+__global__ void tensor_mul(float *a, float scalar, float *out, int nelems)
+{
+    int id = blockDim.x * blockIdx.x + threadIdx.x;
+    if (id < nelems) {
+		out[id] = a[id] * scalar;
+	}
+}
+
+Tensor gpu_tensor_mul(const Tensor &a, float scalar)
+{
+	if (!a.is_on_gpu) {
+		throw std::runtime_error("Tensor not on gpu");
+	}
+
+	Tensor out(a.shape, true);
+
+    int thr_per_blk = 256;
+    int blk_in_grid = ceil( float(a.nelems) / thr_per_blk );
+
+	tensor_mul<<<blk_in_grid, thr_per_blk>>>(a.memory, scalar, out.memory, a.nelems);
+	cudaError_t err = cudaGetLastError();
+	if (err != cudaSuccess) {
+		throw std::runtime_error(std::string("error tensor_add: ") + cudaGetErrorString(err));
+	}
+
+	return out;
+}
+
 __global__ void tensor_dot(float *a, float *b, float *c, int nelems)
 {
     __shared__ float cache[256];
@@ -131,12 +159,14 @@ __global__ void tensor_dot(float *a, float *b, float *c, int nelems)
     if (threadIdx.x == 0)
     {
         float sum = 0;
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < nelems; i++)
         {
             sum += cache[i];
         }
         atomicAdd(c, sum);
     }
+
+	cache[threadIdx.x] = 0.0;
 }
 
 float gpu_dot(const Tensor &a, const Tensor &b)
@@ -147,10 +177,13 @@ float gpu_dot(const Tensor &a, const Tensor &b)
 
 	float *out;
 	
-	err = cudaMalloc((void**)&out, a.nelems);
+	err = cudaMalloc((void**)&out, 1 * sizeof(float));
 	if (err != cudaSuccess) {
 		throw std::runtime_error(std::string("cudaMalloc: ") + cudaGetErrorString(err));
 	}
+
+	float zero = 0;
+	cudaMemcpy(out, &zero, sizeof(float), cudaMemcpyHostToDevice);
 
 	tensor_dot<<<blk_in_grid, thr_per_blk>>>(a.memory, b.memory, out, a.nelems);
 	err = cudaGetLastError();
@@ -158,9 +191,10 @@ float gpu_dot(const Tensor &a, const Tensor &b)
 		cudaFree(out);
 		throw std::runtime_error(std::string("error tensor_dot: ") + cudaGetErrorString(err));
 	}
+	cudaDeviceSynchronize();
 
-	float result = *out;
-
+	float result;
+	cudaMemcpy(&result, out, sizeof(float), cudaMemcpyDeviceToHost);
 	cudaFree(out);
 
 	return result;

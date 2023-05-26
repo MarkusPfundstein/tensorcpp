@@ -33,13 +33,23 @@ Tensor::Tensor(std::vector<int> shape, bool _on_gpu)
     }
 }
 
+Tensor::Tensor(std::vector<int> shape, std::vector<float> data, bool _on_gpu)
+    : Tensor(shape, false)
+{
+    set_data(data);
+
+    if (_on_gpu) {
+        move_to_gpu();
+    }
+}
+
 Tensor::Tensor(const Tensor &other)
     : shape(other.shape),
       nelems(other.nelems),
       memory(other.memory),
       is_on_gpu(other.is_on_gpu)
 {
-    //printf("copy\n");
+    printf("copy\n");
     memory = alloc_ram(nelems);
     memcpy(memory, other.memory, nelems * sizeof(float));
 }
@@ -123,7 +133,7 @@ Tensor Tensor::operator+(const Tensor &other)
     return add(other);
 }
 
-Tensor Tensor::add(const Tensor &other)
+Tensor Tensor::add(const Tensor &other) const
 {
     if (other.shape.size() != shape.size()) {
         throw std::invalid_argument("invalid shapes");
@@ -136,22 +146,52 @@ Tensor Tensor::add(const Tensor &other)
     }
 }
 
-Tensor Tensor::mul(float scalar)
+Tensor Tensor::mul(float scalar) const
 {
     if (is_on_gpu) {
-        throw std::runtime_error("mul not yet implemented on gpu");
+        return std::forward<Tensor>(gpu_tensor_mul(*this, scalar));
     } else {
         return std::forward<Tensor>(cpu_tensor_mul(*this, scalar));
     }
 }
 
-Tensor Tensor::mul(const Tensor &b)
+Tensor Tensor::mul(const Tensor &b) const
 {
-    if (is_on_gpu) {
-        return std::forward<Tensor>(gpu_tensor_mul_2d(*this, b));
-    } else {
-        return std::forward<Tensor>(cpu_tensor_mul_2d(*this, b));
+    // dot product or scalar mul
+    if (shape.size() == 1 && b.shape.size() == 1 && shape[0] == b.shape[0]) {
+        float res = dot(*this, b);
+        return std::move(Tensor({1}, {res}, is_on_gpu));
     }
+    // 2d matrix mul
+    else if (shape.size() == 2 && b.shape.size() == 2) {
+        if (is_on_gpu) {
+            return std::forward<Tensor>(gpu_tensor_mul_2d(*this, b));
+        } else {
+            return std::forward<Tensor>(cpu_tensor_mul_2d(*this, b));
+        }
+    }
+    // scalar * matrix or matrix * scalar
+    else if ((shape.size() == 1 && b.shape.size() >= 1) || (shape.size() >= 1 && b.shape.size() == 1)) {
+        if (shape[0] == 1) {
+            float s = 0.0;
+            if (is_on_gpu) {
+                cudaMemcpy(&s, memory, sizeof(float), cudaMemcpyDeviceToHost);
+            } else {
+                s = memory[0];
+            }
+            return std::forward<Tensor>(b.mul(s));
+        } else if (b.shape[0] == 1) {
+            float s = 0.0;
+            if (is_on_gpu) {
+                cudaMemcpy(&s, b.memory, sizeof(float), cudaMemcpyDeviceToHost);
+            } else {
+                s = b.memory[0];
+            }
+            return std::forward<Tensor>(mul(s));
+        }
+        throw std::runtime_error("weird stuff in Tensor::mul(const Tensor &b)");
+    }
+    throw std::runtime_error("mul for called shapes not implemented");
 }
 
 
@@ -229,6 +269,18 @@ void Tensor::move_to_ram()
     is_on_gpu = false;
 }
 
+void Tensor::set_data(const std::vector<float> &data)
+{
+    if (data.size() != nelems) {
+        throw std::runtime_error("Data has different size than sensor");
+    }
+    if (is_on_gpu) {
+        throw std::runtime_error("Tensor is on GPU. Cant manipulate data");
+    }
+
+    memcpy(memory, data.data(), nelems * sizeof(float));
+}
+
 float dot(const Tensor &a, const Tensor &b)
 {
     if (a.is_on_gpu != b.is_on_gpu) {
@@ -236,7 +288,7 @@ float dot(const Tensor &a, const Tensor &b)
     }
 
     if (a.is_on_gpu) {
-        return 0.0;
+        return gpu_dot(a, b);
     } else {
         return cpu_dot(a, b);
     }

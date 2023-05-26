@@ -13,6 +13,7 @@ class Tensor
 
     Tensor();
     Tensor(std::vector<int> shape, bool _on_gpu=false);
+    Tensor(std::vector<int> shape, std::vector<float> data, bool _on_gpu=false);
     Tensor(const Tensor &other);
     Tensor(Tensor &&other) noexcept;
     ~Tensor();
@@ -23,11 +24,11 @@ class Tensor
     Tensor& operator=(Tensor&& other);
 
 
-    Tensor add(const Tensor &other);
+    Tensor add(const Tensor &other) const;
     Tensor operator+(const Tensor &other);
 
-    Tensor mul(const Tensor &b);
-    Tensor mul(float sclar);
+    Tensor mul(const Tensor &b) const;
+    Tensor mul(float sclar) const;
     Tensor operator*(const Tensor &b);
     Tensor operator*(float scalar);
 
@@ -36,6 +37,8 @@ class Tensor
 
     void move_to_gpu();
     void move_to_ram();
+
+    void set_data(const std::vector<float> &data);
 
     private:
     int calc_mem_idx(const std::vector<int> &indices) noexcept;
