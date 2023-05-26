@@ -3,6 +3,21 @@
 #include <stdexcept>
 #include "tensor_gpu.h"
 
+float *alloc_gpu(int nelems)
+{
+    float *memory = nullptr;
+    cudaError_t err = cudaMalloc((void**)&memory, sizeof(float) * nelems);
+    if (err != cudaSuccess) {
+        throw std::runtime_error(std::string("error allocating memory on device: ") + cudaGetErrorString(err));
+    }
+    return memory;
+}
+
+void free_gpu(float *mem)
+{
+    cudaFree(mem);
+}
+
 #if 0
 static void CheckCudaErrorAux (const char *file, unsigned line, const char *statement, cudaError_t err)
 {
@@ -27,26 +42,54 @@ __global__ void matrix2d_mul_kernel(float *m1, float *m2, float *r, int m1w, int
 		{
 			float v1 = m1[row * m1w + c];
 			float v2 = m2[c * m2w + col];
-			accum += (v1 *  v2);
+			accum += v1 *  v2;
 		}
 
 		r[row * rw + col] = accum;
 	}
 }
 
-void matrix_mul(float *m1, float *m2, float *r, int m1w, int m2w, int rw, int rh)
+Tensor gpu_tensor_mul_2d(const Tensor &a, const Tensor &b)
 {
+	if (!a.is_on_gpu || !b.is_on_gpu) {
+		throw std::runtime_error("One of tensors not on gpu");
+	}
+
+	Tensor out({a.shape[0], b.shape[1]}, true);
+
+	int aw = out.shape[1];
+	int ah = out.shape[0];
+
 	static const int blockWidth = 16;
 	static const int blockHeight = blockWidth;
-	int numBlocksW = 1/ blockWidth;
-	int numBlocksH = 1/ blockHeight;
-	if (1 % blockWidth) numBlocksW++;
-	if (1 % blockHeight) numBlocksH++;
+	int numBlocksW = aw / blockWidth;
+	int numBlocksH = ah / blockHeight;
+	if (aw % blockWidth) {
+		numBlocksW++;
+	}
+	if (ah % blockHeight) {
+		numBlocksH++;
+	}
 
 	dim3 dimGrid(numBlocksW, numBlocksH);
 	dim3 dimBlock(blockWidth, blockHeight);
 
-	matrix2d_mul_kernel<<<dimGrid, dimBlock>>>(m1, m2, r, m1w, m2w, 1, 1);
+	matrix2d_mul_kernel<<<dimGrid, dimBlock>>>(
+		a.memory,
+		b.memory,
+		out.memory,
+		a.shape[1],		// aw
+		b.shape[1],		// bw
+		out.shape[1],	// out w
+		out.shape[0]	// out h
+	);	
+
+	cudaError_t err = cudaGetLastError();
+	if (err != cudaSuccess) {
+		throw std::runtime_error(std::string("error matrix2d_mul_kernel: ") + cudaGetErrorString(err));
+	}
+
+	return out;
 }
 
 __global__ void tensor_add(float *a, float *b, float *out, int nelems)
@@ -59,21 +102,66 @@ __global__ void tensor_add(float *a, float *b, float *out, int nelems)
 
 Tensor gpu_tensor_add(const Tensor& a, const Tensor &b)
 {
-	if (!a._on_gpu || !b._on_gpu) {
+	if (!a.is_on_gpu || !b.is_on_gpu) {
 		throw std::runtime_error("One of tensors not on gpu");
 	}
 
-	Tensor out(a._shape, true);
+	Tensor out(a.shape, true);
 
     int thr_per_blk = 256;
-    int blk_in_grid = ceil( float(a._nelems) / thr_per_blk );
-	printf("blks_in_grid: %d, thr_per_blk: %d\n", blk_in_grid, thr_per_blk);
+    int blk_in_grid = ceil( float(a.nelems) / thr_per_blk );
 
-	tensor_add<<<blk_in_grid, thr_per_blk>>>(a._memory, b._memory, out._memory, a._nelems);
+	tensor_add<<<blk_in_grid, thr_per_blk>>>(a.memory, b.memory, out.memory, a.nelems);
 	cudaError_t err = cudaGetLastError();
 	if (err != cudaSuccess) {
 		throw std::runtime_error(std::string("error tensor_add: ") + cudaGetErrorString(err));
 	}
 
 	return out;
+}
+
+__global__ void tensor_dot(float *a, float *b, float *c, int nelems)
+{
+    __shared__ float cache[256];
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    cache[threadIdx.x] = a[index] * b[index];
+
+    __syncthreads();
+
+    if (threadIdx.x == 0)
+    {
+        float sum = 0;
+        for (int i = 0; i < 256; i++)
+        {
+            sum += cache[i];
+        }
+        atomicAdd(c, sum);
+    }
+}
+
+float gpu_dot(const Tensor &a, const Tensor &b)
+{
+	cudaError_t err;
+	int thr_per_blk = 256;
+    int blk_in_grid = ceil( float(a.nelems) / thr_per_blk );
+
+	float *out;
+	
+	err = cudaMalloc((void**)&out, a.nelems);
+	if (err != cudaSuccess) {
+		throw std::runtime_error(std::string("cudaMalloc: ") + cudaGetErrorString(err));
+	}
+
+	tensor_dot<<<blk_in_grid, thr_per_blk>>>(a.memory, b.memory, out, a.nelems);
+	err = cudaGetLastError();
+	if (err != cudaSuccess) {
+		cudaFree(out);
+		throw std::runtime_error(std::string("error tensor_dot: ") + cudaGetErrorString(err));
+	}
+
+	float result = *out;
+
+	cudaFree(out);
+
+	return result;
 }

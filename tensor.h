@@ -1,26 +1,15 @@
-#pragma once
+#ifndef TENSOR_H
+#define TENSOR_H
 
 #include <vector>
-
-template <typename T>
-T *alloc_ram(int n_elems)
-{
-    return (T*)malloc(sizeof(T) * n_elems);
-}
-
-template <typename T>
-void free_ram(T *ptr)
-{
-    free(ptr);
-}
 
 class Tensor
 {
     public:
-    std::vector<int> _shape;
-    unsigned long int _nelems;
-    float *_memory;
-    bool _on_gpu;
+    std::vector<int> shape;
+    unsigned long int nelems;
+    float *memory;
+    bool is_on_gpu;
 
     Tensor();
     Tensor(std::vector<int> shape, bool _on_gpu=false);
@@ -28,12 +17,19 @@ class Tensor
     Tensor(Tensor &&other) noexcept;
     ~Tensor();
 
+    unsigned int dimensions() const;
+
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other);
 
-    Tensor operator+(const Tensor &other);
 
     Tensor add(const Tensor &other);
+    Tensor operator+(const Tensor &other);
+
+    Tensor mul(const Tensor &b);
+    Tensor mul(float sclar);
+    Tensor operator*(const Tensor &b);
+    Tensor operator*(float scalar);
 
     void set(const std::vector<int> &indices, float val);
     float get(const std::vector<int> &indices);
@@ -44,3 +40,7 @@ class Tensor
     private:
     int calc_mem_idx(const std::vector<int> &indices) noexcept;
 };
+
+float dot(const Tensor &a, const Tensor &b);
+
+#endif
