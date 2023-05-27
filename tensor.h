@@ -46,4 +46,7 @@ class Tensor
 
 float dot(const Tensor &a, const Tensor &b);
 
+
+int __get_existing_tensor_count();
+
 #endif

@@ -188,7 +188,6 @@ void test_set_data()
     printf("test_set_data\n");
 
     Tensor t1d({3});
-
     t1d.set_data({1,2,3});
 
     assertm(t1d.get({0}) == 1, "error copying");
@@ -741,6 +740,7 @@ int main(int argc, char **argv)
     test_mul_with_scalar_cpu();
     test_mul_with_scalar_gpu();
 
+    assertm(__get_existing_tensor_count() == 0, "tensor leaked somewhere");
     printf("!!!!! ALL TESTS PASSED !!!!!\n");
     
 }

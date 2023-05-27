@@ -7,72 +7,47 @@
 
 typedef std::shared_ptr<Tensor> TensorPtr;
 
-class GraphNode
-{
-    public:
+class GraphNode;
+typedef std::shared_ptr<GraphNode> GraphNodePtr;
 
-    enum type {
-        tensor_node = 1,
-        comp_node   = 2
+class GraphNode : public std::enable_shared_from_this<GraphNode>
+{
+
+    // graph node holds either tensor or inputs. which are another graph node
+    TensorPtr tensor;
+    GraphNodePtr left;
+    GraphNodePtr right;
+    
+    public:
+    
+    enum node_type {
+        tensor_node     = 1,
+        comp_node       = 100,
+        comp_node_add   = 101,
+        comp_node_mul   = 102
     };
 
-    virtual ~GraphNode();
+    node_type type;
 
-    virtual const char *str() = 0;
-    virtual type get_type() = 0;
-    virtual TensorPtr eval() = 0;
-};
+    GraphNode(TensorPtr t);
+    GraphNode(Tensor &&t);
 
-class TensorNode : public GraphNode
-{
-    public:
-    TensorPtr tensor;
+    GraphNode(GraphNodePtr l, GraphNodePtr r, node_type type);
+    GraphNode(const GraphNode &l, const GraphNode &r, node_type type);
+    GraphNode(GraphNode &&l, GraphNode &&r, node_type type);
 
-    TensorNode(TensorPtr t);
+    GraphNode(const GraphNode &other);
+    GraphNode(GraphNode &&other);
 
-    const char *str() override { return "t"; };
-    type get_type() { return type::tensor_node; };
-    TensorPtr eval() override;
-};
+    ~GraphNode();
 
-class CompNode : public GraphNode
-{
-    protected:
-    std::unique_ptr<GraphNode> left;
-    std::unique_ptr<GraphNode> right;
+    GraphNode operator+(const GraphNode &other);
+    GraphNode operator*(const GraphNode &other);
 
-    public:
-    CompNode(GraphNode *l, GraphNode *r);
+    TensorPtr eval();
 
-    void set(GraphNode *l, GraphNode *r);
-
-    TensorPtr eval() override;
-    type get_type() override { return type::comp_node; };
-
-    protected:
-    virtual TensorPtr op(TensorPtr l, TensorPtr r) = 0;
-};
-
-class CompNode_Add : public CompNode
-{
-    public:
-    CompNode_Add(GraphNode *l, GraphNode *r) : CompNode(l, r) {}
-
-    const char *str() override { return "+"; }
-
-    protected:
-    TensorPtr op(TensorPtr l, TensorPtr r) override;
-};
-
-class CompNode_Mul : public CompNode
-{
-    public:
-    CompNode_Mul(GraphNode *l, GraphNode *r) : CompNode(l, r) {}
-
-    const char *str() override { return "*"; }
-
-    protected:
-    TensorPtr op(TensorPtr l, TensorPtr r) override;
+    void move_to_gpu();
+    void move_to_ram();
 };
 
 #endif

@@ -11,20 +11,31 @@
 #include "tensor_cpu.h"
 #include "tensor.h"
 
+volatile int __existing_tensor_count__ = 0;
+
+int __get_existing_tensor_count()
+{
+    return __existing_tensor_count__;
+}
+
 Tensor::Tensor()
     : shape(), nelems(0), memory(nullptr), is_on_gpu(false)
 {
-    //printf("default\n");
+
+    //printf("tensor default cons\n");
+
+    __existing_tensor_count__++;
 }
 
 Tensor::Tensor(std::vector<int> shape, bool _on_gpu)
     : shape(shape), nelems(0), memory(nullptr), is_on_gpu(_on_gpu)
 {
+    __existing_tensor_count__++;
     int elems = 1;
     for (auto it = shape.cbegin(); it != shape.cend(); ++it) {
         elems *= *it;
     }
-    //printf("alloc %d elems\n", elems);
+    //printf("tensor shape cons\n");
     nelems = elems;
     if (_on_gpu) {
         memory = alloc_gpu(nelems);
@@ -36,6 +47,7 @@ Tensor::Tensor(std::vector<int> shape, bool _on_gpu)
 Tensor::Tensor(std::vector<int> shape, std::vector<float> data, bool _on_gpu)
     : Tensor(shape, false)
 {
+    //printf("tensor shape & data cons\n");
     set_data(data);
 
     if (_on_gpu) {
@@ -49,7 +61,8 @@ Tensor::Tensor(const Tensor &other)
       memory(other.memory),
       is_on_gpu(other.is_on_gpu)
 {
-    printf("copy\n");
+    __existing_tensor_count__++;
+    printf("COPY Tensor\n");
     memory = alloc_ram(nelems);
     memcpy(memory, other.memory, nelems * sizeof(float));
 }
@@ -60,12 +73,14 @@ Tensor::Tensor(Tensor &&other) noexcept
       memory(std::exchange(other.memory, nullptr)),
       is_on_gpu(other.is_on_gpu)
 {
+    __existing_tensor_count__++;
     //printf("move\n");
 }
 
 Tensor& Tensor::operator=(const Tensor& other)
 {
-    printf("operator=&\n");
+    __existing_tensor_count__++;
+    printf("COPY Tensor::operator=&\n");
     nelems = other.nelems;
     is_on_gpu = other.is_on_gpu;
 
@@ -84,6 +99,7 @@ Tensor& Tensor::operator=(const Tensor& other)
     
 Tensor& Tensor::operator=(Tensor&& other)
 {
+    __existing_tensor_count__++;
     //printf("operator=&&\n");
     memory = std::exchange(other.memory, nullptr);
     nelems = std::exchange(other.nelems, 0);
@@ -94,6 +110,8 @@ Tensor& Tensor::operator=(Tensor&& other)
 
 Tensor::~Tensor()
 {
+    __existing_tensor_count__--;
+    //printf("dealloc tensor %d!!!\n", __existing_tensor_count__);
     if (memory) {
         if (is_on_gpu) {
             free_gpu(memory);

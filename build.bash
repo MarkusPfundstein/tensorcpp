@@ -6,7 +6,6 @@ rm -f build/tensor_test
 
 g++ -Wall -Werror -c tensor_cpu.cpp -o build/tensor_cpu.o
 g++ -Wall -Werror -c -I/usr/local/cuda-12.1/include tensor.cpp -o build/tensor.o
-g++ -Wall -Werror -c comp_graph.cpp -o build/comp_graph.o
 g++ -Wall -Werror -c comp_node.cpp -o build/comp_node.o
 
 # 2080ti has turing architecture. needs arch=compute_50 and sm_50
@@ -27,7 +26,6 @@ g++ -Wall -Werror \
     build/tensor.o \
     build/tensor_gpu.o \
     build/tensor_cpu.o \
-    build/comp_graph.o \
     build/comp_node.o \
     comp_graph_test.cpp \
     -o build/comp_graph_test -L/usr/local/cuda-12.1/lib64 -lcudart

@@ -1,154 +1,134 @@
 #include "comp_node.h"
+#include <stdexcept>
 #include <stdio.h>
+
+
+GraphNode::GraphNode(TensorPtr t)
+    : tensor(t), left(nullptr), right(nullptr), type(node_type::tensor_node)
+{
+
+}
+
+GraphNode::GraphNode(Tensor &&t)
+    : tensor(nullptr), left(nullptr), right(nullptr), type(node_type::tensor_node)
+{
+    tensor = std::make_shared<Tensor>(std::move(t));
+}
+
+GraphNode::GraphNode(GraphNodePtr l, GraphNodePtr r, node_type _type)
+    : tensor(nullptr), left(l), right(r), type(_type)
+{
+}
+
+GraphNode::GraphNode(const GraphNode &l, const GraphNode &r, node_type _type)
+    : tensor(nullptr), left(nullptr), right(nullptr), type(_type)
+{
+    left = std::make_shared<GraphNode>(l);
+    right = std::make_shared<GraphNode>(r);
+}
+
+GraphNode::GraphNode(GraphNode &&l, GraphNode &&r, node_type _type)
+    : tensor(nullptr), left(nullptr), right(nullptr), type(_type)
+{
+    left = std::make_shared<GraphNode>(std::forward<GraphNode>(l));
+    right = std::make_shared<GraphNode>(std::forward<GraphNode>(r));
+}
+
+GraphNode::GraphNode(const GraphNode &other)
+    : tensor(other.tensor),
+      left(other.left),
+      right(other.right),
+      type(other.type)
+{
+    //printf("COPY GRAPHNODE\n");
+}
+
+GraphNode::GraphNode(GraphNode &&other)
+    : tensor(std::exchange(other.tensor, nullptr)),
+      left(std::exchange(other.left, nullptr)),
+      right(std::exchange(other.right, nullptr)),
+      type(other.type)
+{
+    //printf("MOVE GRAPHNODE\n");
+}
 
 GraphNode::~GraphNode()
 {
-    printf("delete graphnode\n");
+    //printf("delete graphnode \n");
 }
 
-TensorNode::TensorNode(TensorPtr t)
-    : tensor(t)
+GraphNode GraphNode::operator+(const GraphNode &other)
 {
+    GraphNode a = GraphNode(*this);
+    GraphNode b = GraphNode(other);
+    
+    GraphNode op(
+        std::move(a),
+        std::move(b),
+        GraphNode::comp_node_add
+    );
 
+    return op;
 }
 
-TensorPtr TensorNode::eval()
+GraphNode GraphNode::operator*(const GraphNode &other)
 {
-    return tensor;
+    GraphNode a = GraphNode(*this);
+    GraphNode b = GraphNode(other);
+    
+    GraphNode op(
+        std::move(a),
+        std::move(b),
+        GraphNode::comp_node_mul
+    );
+
+    return op;
 }
 
-CompNode::CompNode(GraphNode *l, GraphNode *r)
-    : GraphNode()
+TensorPtr GraphNode::eval()
 {
-    set(l, r);
-}
-
-void CompNode::set(GraphNode *l, GraphNode *r)
-{
-    left = std::unique_ptr<GraphNode>(l);
-    right = std::unique_ptr<GraphNode>(r);
-}
-
-TensorPtr CompNode::eval()
-{
-    TensorPtr left_tensor = left->eval();
-    TensorPtr right_tensor = right->eval();
-
-    return op(left_tensor, right_tensor);
-}
-
-TensorPtr CompNode_Add::op(TensorPtr l, TensorPtr r)
-{
-    Tensor c = (*l) + (*r);
-    return std::shared_ptr<Tensor>(new Tensor(std::move(c)));
-}
-
-TensorPtr CompNode_Mul::op(TensorPtr l, TensorPtr r)
-{
-    Tensor c = (*l) * (*r);
-    return std::shared_ptr<Tensor>(new Tensor(std::move(c)));
-}
-
-#if 0
-void CompNode_Add::compute()
-{
-    if (left->get_type() == type::comp_node) {
-        (static_cast<CompNode*>(left.get()))->compute();
+    // base case
+    if (type == node_type::tensor_node) {
+        return tensor;
     }
-    if (right->get_type() == type::comp_node) {
 
+    TensorPtr l = left->eval();
+    TensorPtr r = right->eval();
+
+    if (type == node_type::comp_node_add) {
+        Tensor c = (*l) + (*r);
+        return std::make_shared<Tensor>(std::move(c));
+    }
+    else if (type == node_type::comp_node_mul) {
+        Tensor c = (*l) * (*r);
+        return std::make_shared<Tensor>(std::move(c));
+    } else {
+        throw std::runtime_error("invalid type");
     }
 }
 
-CompNode::CompNode(const std::vector<TensorPtr> &_inputs)
-    : inputs(_inputs)
+void GraphNode::move_to_gpu()
 {
-
-}
-
-void CompNode::move_to_gpu()
-{
-    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
-        (*it)->move_to_gpu();
+    if (type == node_type::tensor_node) {
+        if (!tensor->is_on_gpu) {
+            tensor->move_to_gpu();
+        }
+        return;
     }
-    if (output) {
-        output->move_to_gpu();
+
+    left->move_to_gpu();
+    right->move_to_gpu();
+}
+
+void GraphNode::move_to_ram()
+{
+    if (type == node_type::tensor_node) {
+        if (tensor->is_on_gpu) {
+            tensor->move_to_ram();
+        }
+        return;
     }
+
+    left->move_to_ram();
+    right->move_to_ram();
 }
-
-void CompNode::move_to_ram()
-{
-    for (auto it = inputs.begin(); it != inputs.end(); ++it) {
-        (*it)->move_to_ram();
-    }
-    if (output) {
-        output->move_to_ram();
-    }
-}
-
-const Tensor& CompNode::get_output_ref()
-{
-    return *output;
-}
-
-CompNode_Add::CompNode_Add(TensorPtr a, TensorPtr b)
-    : CompNode({a, b})
-{
-
-}
-
-CompNode_Add::CompNode_Add(Tensor &&a, Tensor &&b)
-    : CompNode(
-        {
-            TensorPtr(new Tensor(std::move(a))), 
-            TensorPtr(new Tensor(std::move(b))),
-        })
-{
-
-}
-
-void CompNode_Add::compute()
-{
-    TensorPtr a = inputs[0];
-    TensorPtr b = inputs[1];
-
-    Tensor c = (*a) + (*b);
-    output = TensorPtr(new Tensor(std::move(c)));
-}
-
-const char* CompNode_Add::str()
-{
-    return "+";
-}
-
-CompNode_Mul::CompNode_Mul(TensorPtr a, TensorPtr b)
-    : CompNode({a, b})
-{
-
-}
-
-CompNode_Mul::CompNode_Mul(Tensor &&a, Tensor &&b)
-    : CompNode(
-        {
-            TensorPtr(new Tensor(std::move(a))), 
-            TensorPtr(new Tensor(std::move(b))),
-        })
-{
-
-}
-
-void CompNode_Mul::compute()
-{
-    TensorPtr a = inputs[0];
-    TensorPtr b = inputs[1];
-
-    Tensor c = (*a) * (*b);
-    output = TensorPtr(new Tensor(std::move(c)));
-}
-
-const char* CompNode_Mul::str()
-{
-    return "*";
-}
-
-#endif
