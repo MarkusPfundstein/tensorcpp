@@ -23,14 +23,36 @@ class Tensor
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other);
 
-
+    /* a + b */
     Tensor add(const Tensor &other) const;
-    Tensor operator+(const Tensor &other);
+    Tensor operator+(const Tensor &other) const;
 
+    /* -a */
+    Tensor operator-() const;
+
+    /* a - b */
+    Tensor operator-(const Tensor &other) const;
+
+    // a * b
     Tensor mul(const Tensor &b) const;
+    Tensor operator*(const Tensor &b) const;
+
+    // a @ b (matmul)
+    Tensor operator&(const Tensor &b) const;
+
+    // a * scalar
     Tensor mul(float sclar) const;
-    Tensor operator*(const Tensor &b);
-    Tensor operator*(float scalar);
+    Tensor operator*(float scalar) const;
+
+    // pow(a, 2)
+    Tensor pow(float power) const;
+
+    // dot(a, b)
+    static float dot(const Tensor &a, const Tensor &b);
+
+    // a / b
+    Tensor operator/(float scalar);
+    Tensor operator/(const Tensor &other);
 
     void set(const std::vector<int> &indices, float val);
     float get(const std::vector<int> &indices) const;
@@ -44,9 +66,9 @@ class Tensor
 
     private:
     int calc_mem_idx(const std::vector<int> &indices) const noexcept;
+
 };
 
-float dot(const Tensor &a, const Tensor &b);
 
 
 int __get_existing_tensor_count();

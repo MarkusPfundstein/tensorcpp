@@ -256,3 +256,59 @@ float gpu_dot(const Tensor &a, const Tensor &b)
 
     return result;
 }
+
+__global__ void tensor_pow(float *a, float power, float *out, int nelems)
+{
+    int id = blockDim.x * blockIdx.x + threadIdx.x;
+    if (id < nelems) {
+        out[id] = pow(a[id], power);
+    }
+}
+
+Tensor gpu_tensor_pow(const Tensor &a, float power)
+{
+    if (!a.is_on_gpu) {
+        throw std::runtime_error("Tensor not on gpu");
+    }
+
+    Tensor out(a.shape, true);
+
+    int thr_per_blk = 256;
+    int blk_in_grid = ceil( float(a.nelems) / thr_per_blk );
+
+    tensor_pow<<<blk_in_grid, thr_per_blk>>>(a.memory, power, out.memory, a.nelems);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        throw std::runtime_error(std::string("error tensor_add: ") + cudaGetErrorString(err));
+    }
+
+    return out;
+}
+
+__global__ void tensor_pointwise_mul(float *a, float *b, float *out, int nelems)
+{
+    int id = blockDim.x * blockIdx.x + threadIdx.x;
+    if (id < nelems) {
+        out[id] = a[id] * b[id];
+    }
+}
+
+Tensor gpu_pointwise_mul(const Tensor& a, const Tensor &b)
+{
+    if (!a.is_on_gpu || !b.is_on_gpu) {
+        throw std::runtime_error("One of tensors not on gpu");
+    }
+
+    Tensor out(a.shape, true);
+
+    int thr_per_blk = 256;
+    int blk_in_grid = ceil( float(a.nelems) / thr_per_blk );
+
+    tensor_pointwise_mul<<<blk_in_grid, thr_per_blk>>>(a.memory, b.memory, out.memory, a.nelems);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        throw std::runtime_error(std::string("error tensor_pointwise_mul: ") + cudaGetErrorString(err));
+    }
+
+    return out;
+}

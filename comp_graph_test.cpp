@@ -2,6 +2,7 @@
 #include <cstring>
 #include <cassert>
 #include <iostream>
+#include <fstream>
 
 #define NDEBUG
 #define assertm(exp, msg) assert(((void)msg, exp))
@@ -149,8 +150,20 @@ void test_draw()
 
     // final dot
     GraphNode e = c * d;
+
+    std::ofstream of;
+    of.open("graphs/graph_first_eval_1.dot", std::ios::out | std::ios::trunc);
+    e.draw(of);
+    of.close();
+
+
     e.move_to_gpu();
-    printf("%s\n", e.eval()->str().c_str());
+    TensorPtr result = e.eval();
+    
+    printf("%s\n", result->str().c_str());
+    of.open("graphs/graph_first_eval_2.dot", std::ios::out | std::ios::trunc);
+    e.draw(of);
+    of.close();
 
     GraphNode f = e * GraphNode(Tensor({2,3}, {0.01, 0.32, -3.43, 3.2, 4.8, 0.0002}, false));
 
@@ -158,16 +171,21 @@ void test_draw()
 
     GraphNode final = f * g;
     final.move_to_gpu();
-    TensorPtr result = final.eval();
+    
+    of.open("graphs/graph_final_eval_1.dot", std::ios::out | std::ios::trunc);
+    final.draw(of);
+    of.close();
 
+    result = final.eval();
     printf("%s\n", result->str().c_str());
 
-
+    of.open("graphs/graph_final_eval_2.dot", std::ios::out | std::ios::trunc);
+    final.draw(of);
+    of.close();
 
     //GraphNode final = GraphNode(Tensor({2}, {0.5, 0.5})) * h;
 
 
-    //final.draw(std::cerr);
 
     //final.eval();
 }

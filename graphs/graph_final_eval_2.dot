@@ -1,0 +1,27 @@
+digraph G {
+MUL_Output_0ghAC[label="[*]\nTensor(shape={2}, mem=[182.4,2736], gpu=1)"]
+MUL_MUL_Output_0ghAC_1OHPN[label="[*]\nTensor(shape={2,3}, mem=[5.7,182.4,-1955.1,1824,2736,0.114], gpu=1)"]
+MUL_Output_0ghAC -> MUL_MUL_Output_0ghAC_1OHPN
+MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq[label="[*]\nTensor(shape={1}, mem=[570], gpu=1)"]
+MUL_MUL_Output_0ghAC_1OHPN -> MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq
+MUL_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_37dIf[label="[*]\nTensor(shape={3}, mem=[5,10,15], gpu=1)"]
+MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq -> MUL_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_37dIf
+TENSOR_MUL_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_37dIf_4MGbY[label="Tensor(shape={1}, mem=[5], gpu=1)"]
+MUL_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_37dIf -> TENSOR_MUL_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_37dIf_4MGbY
+TENSOR_MUL_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_37dIf_4ldX1[label="Tensor(shape={3}, mem=[1,2,3], gpu=1)"]
+MUL_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_37dIf -> TENSOR_MUL_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_37dIf_4ldX1
+PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe[label="[+]\nTensor(shape={3}, mem=[11,17,23], gpu=1)"]
+MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq -> PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe
+MUL_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4j3EY[label="[*]\nTensor(shape={3}, mem=[5,10,15], gpu=1)"]
+PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe -> MUL_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4j3EY
+TENSOR_MUL_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4j3EY_5pqyy[label="Tensor(shape={1}, mem=[5], gpu=1)"]
+MUL_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4j3EY -> TENSOR_MUL_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4j3EY_5pqyy
+TENSOR_MUL_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4j3EY_5vugT[label="Tensor(shape={3}, mem=[1,2,3], gpu=1)"]
+MUL_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4j3EY -> TENSOR_MUL_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4j3EY_5vugT
+TENSOR_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4gyFO[label="Tensor(shape={3}, mem=[6,7,8], gpu=1)"]
+PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe -> TENSOR_PLUS_MUL_MUL_MUL_Output_0ghAC_1OHPN_25Srq_3QQUe_4gyFO
+TENSOR_MUL_MUL_Output_0ghAC_1OHPN_2lE4f[label="Tensor(shape={2,3}, mem=[0.01,0.32,-3.43,3.2,4.8,0.0002], gpu=1)"]
+MUL_MUL_Output_0ghAC_1OHPN -> TENSOR_MUL_MUL_Output_0ghAC_1OHPN_2lE4f
+TENSOR_MUL_Output_0ghAC_1Lp4b[label="Tensor(shape={3}, mem=[0,1,0], gpu=1)"]
+MUL_Output_0ghAC -> TENSOR_MUL_Output_0ghAC_1Lp4b
+}

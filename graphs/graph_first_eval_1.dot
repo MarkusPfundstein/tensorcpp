@@ -1,0 +1,19 @@
+digraph G {
+MUL_Output_0a48K[label="*"]
+MUL_MUL_Output_0a48K_1Hno6[label="*"]
+MUL_Output_0a48K -> MUL_MUL_Output_0a48K_1Hno6
+TENSOR_MUL_MUL_Output_0a48K_1Hno6_2cWoN[label="Tensor(shape={1}, mem=[5], gpu=0)"]
+MUL_MUL_Output_0a48K_1Hno6 -> TENSOR_MUL_MUL_Output_0a48K_1Hno6_2cWoN
+TENSOR_MUL_MUL_Output_0a48K_1Hno6_2o9Lp[label="Tensor(shape={3}, mem=[1,2,3], gpu=0)"]
+MUL_MUL_Output_0a48K_1Hno6 -> TENSOR_MUL_MUL_Output_0a48K_1Hno6_2o9Lp
+PLUS_MUL_Output_0a48K_1rCg7[label="+"]
+MUL_Output_0a48K -> PLUS_MUL_Output_0a48K_1rCg7
+MUL_PLUS_MUL_Output_0a48K_1rCg7_2jwqX[label="*"]
+PLUS_MUL_Output_0a48K_1rCg7 -> MUL_PLUS_MUL_Output_0a48K_1rCg7_2jwqX
+TENSOR_MUL_PLUS_MUL_Output_0a48K_1rCg7_2jwqX_3qqxZ[label="Tensor(shape={1}, mem=[5], gpu=0)"]
+MUL_PLUS_MUL_Output_0a48K_1rCg7_2jwqX -> TENSOR_MUL_PLUS_MUL_Output_0a48K_1rCg7_2jwqX_3qqxZ
+TENSOR_MUL_PLUS_MUL_Output_0a48K_1rCg7_2jwqX_3DP1K[label="Tensor(shape={3}, mem=[1,2,3], gpu=0)"]
+MUL_PLUS_MUL_Output_0a48K_1rCg7_2jwqX -> TENSOR_MUL_PLUS_MUL_Output_0a48K_1rCg7_2jwqX_3DP1K
+TENSOR_PLUS_MUL_Output_0a48K_1rCg7_217jy[label="Tensor(shape={3}, mem=[6,7,8], gpu=0)"]
+PLUS_MUL_Output_0a48K_1rCg7 -> TENSOR_PLUS_MUL_Output_0a48K_1rCg7_217jy
+}

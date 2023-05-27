@@ -7,31 +7,31 @@
 std::string random_string(std::size_t length);
 
 GraphNode::GraphNode(TensorPtr t)
-    : tensor(t), left(nullptr), right(nullptr), type(node_type::tensor_node)
+    : tensor(t), cached_result(nullptr), left(nullptr), right(nullptr), type(node_type::tensor_node)
 {
 
 }
 
 GraphNode::GraphNode(Tensor &&t)
-    : tensor(nullptr), left(nullptr), right(nullptr), type(node_type::tensor_node)
+    : tensor(nullptr), cached_result(nullptr), left(nullptr), right(nullptr), type(node_type::tensor_node)
 {
     tensor = std::make_shared<Tensor>(std::move(t));
 }
 
 GraphNode::GraphNode(GraphNodePtr l, GraphNodePtr r, node_type _type)
-    : tensor(nullptr), left(l), right(r), type(_type)
+    : tensor(nullptr), cached_result(nullptr), left(l), right(r), type(_type)
 {
 }
 
 GraphNode::GraphNode(const GraphNode &l, const GraphNode &r, node_type _type)
-    : tensor(nullptr), left(nullptr), right(nullptr), type(_type)
+    : tensor(nullptr), cached_result(nullptr), left(nullptr), right(nullptr), type(_type)
 {
     left = std::make_shared<GraphNode>(l);
     right = std::make_shared<GraphNode>(r);
 }
 
 GraphNode::GraphNode(GraphNode &&l, GraphNode &&r, node_type _type)
-    : tensor(nullptr), left(nullptr), right(nullptr), type(_type)
+    : tensor(nullptr), cached_result(nullptr), left(nullptr), right(nullptr), type(_type)
 {
     left = std::make_shared<GraphNode>(std::forward<GraphNode>(l));
     right = std::make_shared<GraphNode>(std::forward<GraphNode>(r));
@@ -39,6 +39,7 @@ GraphNode::GraphNode(GraphNode &&l, GraphNode &&r, node_type _type)
 
 GraphNode::GraphNode(const GraphNode &other)
     : tensor(other.tensor),
+      cached_result(other.cached_result), 
       left(other.left),
       right(other.right),
       type(other.type)
@@ -48,6 +49,7 @@ GraphNode::GraphNode(const GraphNode &other)
 
 GraphNode::GraphNode(GraphNode &&other)
     : tensor(std::exchange(other.tensor, nullptr)),
+      cached_result(std::exchange(other.cached_result, nullptr)),
       left(std::exchange(other.left, nullptr)),
       right(std::exchange(other.right, nullptr)),
       type(other.type)
@@ -88,11 +90,16 @@ GraphNode GraphNode::operator*(const GraphNode &other)
     return op;
 }
 
-TensorPtr GraphNode::eval() const
+TensorPtr GraphNode::eval()
 {
     // base case
     if (type == node_type::tensor_node) {
         return tensor;
+    }
+
+    if (cached_result != nullptr) {
+        printf("return from cache %s\n", cached_result->str().c_str());
+        return cached_result;
     }
 
     TensorPtr l = left->eval();
@@ -100,14 +107,15 @@ TensorPtr GraphNode::eval() const
 
     if (type == node_type::comp_node_add) {
         Tensor c = (*l) + (*r);
-        return std::make_shared<Tensor>(std::move(c));
+        cached_result = std::make_shared<Tensor>(std::move(c));
     }
     else if (type == node_type::comp_node_mul) {
         Tensor c = (*l) * (*r);
-        return std::make_shared<Tensor>(std::move(c));
+        cached_result = std::make_shared<Tensor>(std::move(c));
     } else {
         throw std::runtime_error("invalid type");
     }
+    return cached_result;
 }
 
 void GraphNode::move_to_gpu()
@@ -179,8 +187,12 @@ void GraphNode::draw(std::ostream &os, const std::string &parent_name, int depth
     sname << str() << "_" << parent_name << "_" << depth << random_string(4);
     std::string name = sname.str();
 
-    os << name << "[label=\"" << label() << "\"]" << std::endl;
-    os << parent_name << " -> " << name << std::endl;
+    os << name << "[label=\"" << (
+        cached_result == nullptr ? label() : ("[" + label() + "]\\n" + cached_result->str())
+    ) << "\"]" << std::endl;
+    if (depth > 0) {
+        os << parent_name << " -> " << name << std::endl;
+    }
     if (type == node_type::tensor_node) {
         return;
     }

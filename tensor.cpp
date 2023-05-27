@@ -129,7 +129,7 @@ unsigned int Tensor::dimensions() const
 }
 
 
-Tensor Tensor::operator+(const Tensor &other)
+Tensor Tensor::operator+(const Tensor &other) const
 {
     return add(other);
 }
@@ -156,21 +156,25 @@ Tensor Tensor::mul(float scalar) const
     }
 }
 
-Tensor Tensor::mul(const Tensor &b) const
+Tensor Tensor::operator&(const Tensor &b) const
 {
-    //printf("%ld, %ld\n", shape.size(), b.shape.size());
-    // dot product or scalar mul
-    if (shape.size() == 1 && b.shape.size() == 1 && shape[0] == b.shape[0]) {
-        float res = dot(*this, b);
-        return std::move(Tensor({1}, {res}, is_on_gpu));
-    }
-    // 2d matrix mul
-    else if (shape.size() == 2 && b.shape.size() == 2) {
+    if (shape.size() == 2 && b.shape.size() == 2) {
         if (is_on_gpu) {
             return std::forward<Tensor>(gpu_tensor_mul_mat2d_mat2d(*this, b));
         } else {
             return std::forward<Tensor>(cpu_tensor_mul_mat2d_mat2d(*this, b));
         }
+    }
+    throw std::runtime_error("matmul only implemented for 2x2");
+}
+
+Tensor Tensor::mul(const Tensor &b) const
+{
+    //printf("%ld, %ld\n", shape.size(), b.shape.size());
+    // dot product or scalar mul
+    if (shape.size() == 1 && b.shape.size() == 1 && shape[0] == b.shape[0]) {
+        float res = Tensor::dot(*this, b);
+        return std::move(Tensor({1}, {res}, is_on_gpu));
     }
     // scalar * matrix or matrix * scalar
     // or vector * matrix or matrix * vector
@@ -209,19 +213,49 @@ Tensor Tensor::mul(const Tensor &b) const
         printf("this.shape=[%d %d], b.shape=[%d]\n", shape[0], shape[1], b.shape[0]);
         //throw std::runtime_error("weird stuff in Tensor::mul(const Tensor &b)");
     }
+    // pointwise mul
+    else if (shape.size() == b.shape.size() && shape == b.shape) {
+        if (is_on_gpu) {
+            return std::forward<Tensor>(gpu_pointwise_mul(*this, b));
+        } else {
+            return std::forward<Tensor>(cpu_pointwise_mul(*this, b));
+        }
+    }
+
     printf("Unhandled shape sizes in Tensor::mul. [%ld, %ld]\n", shape.size(), b.shape.size());
     throw std::runtime_error("mul for called shapes not implemented");
 }
 
+Tensor Tensor::operator-() const
+{
+    return *this * (-1);
+}
 
-Tensor Tensor::operator*(float scalar)
+Tensor Tensor::operator-(const Tensor &other) const
+{
+    return *this + (-other);
+}
+
+Tensor Tensor::operator*(float scalar) const
 {
     return std::forward<Tensor>(mul(scalar));
 }
 
-Tensor Tensor::operator*(const Tensor &b)
+Tensor Tensor::operator*(const Tensor &b) const
 {
     return std::forward<Tensor>(mul(b));
+}
+
+Tensor Tensor::operator/(float scalar)
+{
+    Tensor other({1}, {scalar}, is_on_gpu);
+
+    return *this * other.pow(-1);
+}
+    
+Tensor Tensor::operator/(const Tensor &other)
+{
+    return *this * other.pow(-1);
 }
 
 void Tensor::set(const std::vector<int> &indices, float val)
@@ -344,11 +378,10 @@ int Tensor::calc_mem_idx(const std::vector<int> &indices) const noexcept
     }
 
     mem_idx += indices[indices.size() - 1];
-    //printf("  mem_idx: %d\n", mem_idx);
     return mem_idx;
 }
 
-float dot(const Tensor &a, const Tensor &b)
+float Tensor::dot(const Tensor &a, const Tensor &b)
 {
     if (a.is_on_gpu != b.is_on_gpu) {
         throw std::runtime_error("Both tensors need to be on gpu or not");
@@ -358,5 +391,14 @@ float dot(const Tensor &a, const Tensor &b)
         return gpu_dot(a, b);
     } else {
         return cpu_dot(a, b);
+    }
+}
+
+Tensor Tensor::pow(float power) const
+{
+    if (is_on_gpu) {
+        return std::forward<Tensor>(gpu_tensor_pow(*this, power));
+    } else {
+        return std::forward<Tensor>(cpu_tensor_pow(*this, power));
     }
 }

@@ -14,8 +14,8 @@ typedef std::shared_ptr<GraphNode> GraphNodePtr;
 class GraphNode : public std::enable_shared_from_this<GraphNode>
 {
 
-    // graph node holds either tensor or inputs. which are another graph node
     TensorPtr tensor;
+    TensorPtr cached_result;
     GraphNodePtr left;
     GraphNodePtr right;
     
@@ -45,7 +45,7 @@ class GraphNode : public std::enable_shared_from_this<GraphNode>
     GraphNode operator+(const GraphNode &other);
     GraphNode operator*(const GraphNode &other);
 
-    TensorPtr eval() const;
+    TensorPtr eval();
 
     void move_to_gpu();
     void move_to_ram();

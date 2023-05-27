@@ -9,6 +9,8 @@ Tensor cpu_tensor_add(const Tensor& a, const Tensor &b);
 Tensor cpu_tensor_mul_mat2d_mat2d(const Tensor& a, const Tensor &b);
 Tensor cpu_tensor_mul_mat2d_vec(const Tensor &mat, const Tensor &vec);
 Tensor cpu_tensor_mul(const Tensor& a, float scalar);
+Tensor cpu_tensor_pow(const Tensor& a, float power);
+Tensor cpu_pointwise_mul(const Tensor& a, const Tensor &b);
 
 float *alloc_ram(int n_elems);
 void free_ram(float *ptr);

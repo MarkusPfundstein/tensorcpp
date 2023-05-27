@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <stdlib.h>
+#include <math.h>
 #include "tensor_cpu.h"
 
 float cpu_dot(const Tensor &a, const Tensor &b)
@@ -77,6 +78,29 @@ Tensor cpu_tensor_mul(const Tensor& a, float scalar)
     for (unsigned long int i = 0; i < a.nelems; ++i) {
         t.memory[i] = a.memory[i] * scalar;
     }
+    return t;
+}
+
+Tensor cpu_tensor_pow(const Tensor& a, float power)
+{
+    Tensor t(a.shape);
+    for (unsigned long int i = 0; i < a.nelems; ++i) {
+        t.memory[i] = std::pow(a.memory[i], power);
+    }
+    return t;
+}
+
+Tensor cpu_pointwise_mul(const Tensor& a, const Tensor &b)
+{
+    if (a.shape != b.shape) {
+        throw std::runtime_error("cpu_pointwise_mul error: a.shape != b.shape");
+    }
+    Tensor t(a.shape);
+
+    for (unsigned long i = 0; i < a.nelems; ++i) {
+        t.memory[i] = a.memory[i] * b.memory[i];
+    }
+
     return t;
 }
 
