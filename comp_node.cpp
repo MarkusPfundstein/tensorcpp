@@ -1,7 +1,10 @@
 #include "comp_node.h"
 #include <stdexcept>
 #include <stdio.h>
+#include <sstream>
+#include <random>
 
+std::string random_string(std::size_t length);
 
 GraphNode::GraphNode(TensorPtr t)
     : tensor(t), left(nullptr), right(nullptr), type(node_type::tensor_node)
@@ -85,7 +88,7 @@ GraphNode GraphNode::operator*(const GraphNode &other)
     return op;
 }
 
-TensorPtr GraphNode::eval()
+TensorPtr GraphNode::eval() const
 {
     // base case
     if (type == node_type::tensor_node) {
@@ -131,4 +134,75 @@ void GraphNode::move_to_ram()
 
     left->move_to_ram();
     right->move_to_ram();
+}
+
+std::string GraphNode::label() const
+{
+    switch (type) {
+        case GraphNode::node_type::tensor_node:
+        return tensor->str();
+        case GraphNode::node_type::comp_node_add:
+        return "+";
+        case GraphNode::node_type::comp_node_mul:
+        return "*";
+        default:
+        return "err";
+    }
+}
+
+std::string GraphNode::str() const
+{
+    switch (type) {
+        case GraphNode::node_type::tensor_node:
+        return "TENSOR";
+        case GraphNode::node_type::comp_node_add:
+        return "PLUS";
+        case GraphNode::node_type::comp_node_mul:
+        return "MUL";
+        default:
+        return "err";
+    }
+}
+
+void GraphNode::draw(std::ostream &os) const
+{
+    os << "digraph G {\n";
+    
+    draw(os, "Output", 0);
+
+    os << "}" << std::endl;
+}
+
+void GraphNode::draw(std::ostream &os, const std::string &parent_name, int depth) const
+{
+    std::stringstream sname;
+    sname << str() << "_" << parent_name << "_" << depth << random_string(4);
+    std::string name = sname.str();
+
+    os << name << "[label=\"" << label() << "\"]" << std::endl;
+    os << parent_name << " -> " << name << std::endl;
+    if (type == node_type::tensor_node) {
+        return;
+    }
+
+    left->draw(os, name, depth + 1);
+    right->draw(os, name, depth + 1);
+}
+
+std::string random_string(std::size_t length)
+{
+    const std::string CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+    std::random_device random_device;
+    std::mt19937 generator(random_device());
+    std::uniform_int_distribution<> distribution(0, CHARACTERS.size() - 1);
+
+    std::string random_string;
+
+    for (std::size_t i = 0; i < length; ++i)
+    {
+        random_string += CHARACTERS[distribution(generator)];
+    }
+
+    return random_string;
 }

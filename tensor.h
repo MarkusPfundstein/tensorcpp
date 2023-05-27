@@ -33,15 +33,17 @@ class Tensor
     Tensor operator*(float scalar);
 
     void set(const std::vector<int> &indices, float val);
-    float get(const std::vector<int> &indices);
+    float get(const std::vector<int> &indices) const;
 
     void move_to_gpu();
     void move_to_ram();
 
     void set_data(const std::vector<float> &data);
 
+    std::string str() const;
+
     private:
-    int calc_mem_idx(const std::vector<int> &indices) noexcept;
+    int calc_mem_idx(const std::vector<int> &indices) const noexcept;
 };
 
 float dot(const Tensor &a, const Tensor &b);

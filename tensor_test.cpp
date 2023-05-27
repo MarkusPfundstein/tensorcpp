@@ -11,7 +11,7 @@
 bool within_acceptable_error(float val, float tval) {
     float acceptable_error = 0.0001;
 
-    if ((tval - acceptable_error) < val && (tval + acceptable_error) > val) {
+    if ((tval - acceptable_error) <= val && (tval + acceptable_error) >= val) {
         return true;
     }
     return false;
@@ -711,6 +711,73 @@ void test_mul_2d_large_cpu_and_gpu_compare()
     }
 }
 
+void test_str()
+{
+    printf("test_str\n");
+
+    Tensor t1 = Tensor({1}, {0.1}, false);
+    std::string r1 = t1.str();
+
+    assertm(r1 == "Tensor(shape={1}, mem=[0.1], gpu=0)", "invalid scalar string");
+
+    Tensor t2 = Tensor({3}, {0.1, 0.2, 0.3}, false);
+    std::string r2 = t2.str();
+
+    assertm(r2 == "Tensor(shape={3}, mem=[0.1,0.2,0.3], gpu=0)", "invalid vector");
+
+    Tensor t3 = Tensor({2, 3}, {1, 2, 3, 4, 5, 6}, true);
+    std::string r3 = t3.str();
+
+    assertm(r3 == "Tensor(shape={2,3}, mem=[1,2,3,4,5,6], gpu=1)", "invalid vector");
+
+    Tensor t4 = Tensor({2, 2, 2}, {1, 2, 3, 4, 5, 6, 7, 8}, true);
+    std::string r4 = t4.str();
+
+    assertm(r4 == "Tensor(shape={2,2,2}, mem=[1,2,3,4,5,6,7,8], gpu=1)", "invalid vector");
+}
+
+void test_mul_mat_with_vec_cpu()
+{
+    printf("test_mul_mat_with_vec_cpu\n");
+
+    Tensor t1({2,3}, {0.01, 0.32, -3.43, 3.2, 4.8, 0.0002}, false);
+    Tensor t2({3}, {0,1,0}, false);
+
+    Tensor r1 = t1 * t2;
+
+    printf("%f\n", r1.memory[0]);
+
+    assert(within_acceptable_error(r1.memory[0], 0.32));
+    assert(within_acceptable_error(r1.memory[1], 4.8));
+
+    Tensor r2 = t2 * t1;
+
+    assert(within_acceptable_error(r2.memory[0], 0.32));
+    assert(within_acceptable_error(r2.memory[1], 4.8));
+}
+
+void test_mul_mat_with_vec_gpu()
+{
+    printf("test_mul_mat_with_vec_gpu\n");
+
+    Tensor t1({2,3}, {0.01, 0.32, -3.43, 3.2, 4.8, 0.0002}, true);
+    Tensor t2({3}, {0,1,0}, true);
+
+    Tensor r1 = t1 * t2;
+    r1.move_to_ram();
+
+    printf("%f\n", r1.memory[0]);
+
+    assert(within_acceptable_error(r1.memory[0], 0.32));
+    assert(within_acceptable_error(r1.memory[1], 4.8));
+
+    Tensor r2 = t2 * t1;
+    r2.move_to_ram();
+
+    assert(within_acceptable_error(r2.memory[0], 0.32));
+    assert(within_acceptable_error(r2.memory[1], 4.8));
+}
+
 int main(int argc, char **argv)
 {
     printf("RUN %s\n", argv[0]);
@@ -739,6 +806,11 @@ int main(int argc, char **argv)
     test_mul_with_two_scalar_tensors_cpu();
     test_mul_with_scalar_cpu();
     test_mul_with_scalar_gpu();
+
+    test_mul_mat_with_vec_cpu();
+    test_mul_mat_with_vec_gpu();
+
+    test_str();
 
     assertm(__get_existing_tensor_count() == 0, "tensor leaked somewhere");
     printf("!!!!! ALL TESTS PASSED !!!!!\n");

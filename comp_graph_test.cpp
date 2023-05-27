@@ -1,6 +1,7 @@
 #include "comp_node.h"
 #include <cstring>
 #include <cassert>
+#include <iostream>
 
 #define NDEBUG
 #define assertm(exp, msg) assert(((void)msg, exp))
@@ -51,7 +52,6 @@ void test_compnode_mul_cpu()
     assertm(res == c->memory[0], "mul op dot product failed");
 }
 
-
 void test_compnode_add_gpu()
 {
     printf("test_compnode_add_gpu\n");
@@ -71,7 +71,6 @@ void test_compnode_add_gpu()
 
     assertm(memcmp(c2->memory, ref.data(), c2->nelems * sizeof(float)) == 0, "add with + interface failed");
 }
-
 
 void test_graphnodes_cpu()
 {
@@ -137,6 +136,42 @@ void test_graphnodes_interface_gpu()
     assertm(out->memory[0] == 570.0, "invalid result.");
 }
 
+void test_draw()
+{
+    printf("test_draw\n");
+
+    GraphNode a(Tensor({1}, {5}, false));
+    GraphNode b(Tensor({3}, {1,2,3}, false));
+
+    GraphNode c = a * b;
+
+    GraphNode d = c + GraphNode(Tensor({3}, {6, 7, 8}, false));
+
+    // final dot
+    GraphNode e = c * d;
+    e.move_to_gpu();
+    printf("%s\n", e.eval()->str().c_str());
+
+    GraphNode f = e * GraphNode(Tensor({2,3}, {0.01, 0.32, -3.43, 3.2, 4.8, 0.0002}, false));
+
+    GraphNode g = GraphNode(Tensor({3}, {0,1,0}, false));
+
+    GraphNode final = f * g;
+    final.move_to_gpu();
+    TensorPtr result = final.eval();
+
+    printf("%s\n", result->str().c_str());
+
+
+
+    //GraphNode final = GraphNode(Tensor({2}, {0.5, 0.5})) * h;
+
+
+    //final.draw(std::cerr);
+
+    //final.eval();
+}
+
 int main(int argc, char **argv)
 {
     printf("RUN %s\n", argv[0]);
@@ -150,6 +185,8 @@ int main(int argc, char **argv)
 
     test_graphnodes_interface_cpu();
     test_graphnodes_interface_gpu();
+
+    test_draw();
 
     printf("tensors left in mem: %d\n", __get_existing_tensor_count());
     assertm(__get_existing_tensor_count() == 0, "tensor leaked somewhere");

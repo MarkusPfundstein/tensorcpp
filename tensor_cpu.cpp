@@ -27,10 +27,9 @@ Tensor cpu_tensor_add(const Tensor &a, const Tensor &b)
     return t;
 }
 
-Tensor cpu_tensor_mul_2d(const Tensor& a, const Tensor &b)
+Tensor cpu_tensor_mul_mat2d_mat2d(const Tensor& a, const Tensor &b)
 {
     if (a.shape[1] != b.shape[0]) {
-        printf("%d  -   %d\n", a.shape[1], b.shape[0]);
         throw std::runtime_error("Invalid shapes of Tensor a & b. Cannot multiply");
     }
 
@@ -42,15 +41,31 @@ Tensor cpu_tensor_mul_2d(const Tensor& a, const Tensor &b)
             for (int ai = 0; ai < a.shape[1]; ++ai) {
                 float aval = a.memory[i * a.shape[1] + ai];
                 float bval = b.memory[ai * b.shape[1] + j];
-                //printf("a[%d %d]=%f\n", i, j, aval);
-                //printf("a[%d %d]=%f\n", i, j, aval);
                 sum += aval * bval;
             }
-            //printf("idx: %d\n", i * out.shape[1] + j);
-            //printf("[%d %d] -> %f\n", i, j, sum);
-            //out.set({i, j}, sum);
             out.memory[i * out.shape[1] + j] = sum;
         }
+    }
+
+    return out;
+}
+
+Tensor cpu_tensor_mul_mat2d_vec(const Tensor &a, const Tensor &b)
+{
+    if (a.shape[1] != b.shape[0]) {
+        throw std::runtime_error("Invalid shapes of Tensor a & b. Cannot multiply");
+    }
+
+    Tensor out({a.shape[0]});
+
+    for (int i = 0; i < out.shape[0]; ++i) {
+            float sum = 0.0;
+            for (int ai = 0; ai < a.shape[1]; ++ai) {
+                float aval = a.memory[i * a.shape[1] + ai];
+                float bval = b.memory[ai];
+                sum += aval * bval;
+            }
+            out.memory[i] = sum;
     }
 
     return out;

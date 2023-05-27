@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <ostream>
 #include "tensor.h"
 
 typedef std::shared_ptr<Tensor> TensorPtr;
@@ -44,10 +45,18 @@ class GraphNode : public std::enable_shared_from_this<GraphNode>
     GraphNode operator+(const GraphNode &other);
     GraphNode operator*(const GraphNode &other);
 
-    TensorPtr eval();
+    TensorPtr eval() const;
 
     void move_to_gpu();
     void move_to_ram();
+
+    void draw(std::ostream &os) const;
+
+    private:
+    std::string label() const;    
+    std::string str() const;
+    void draw(std::ostream& os, const std::string &parent_name, int depth) const;
+
 };
 
 #endif
