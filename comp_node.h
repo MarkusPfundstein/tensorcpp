@@ -65,6 +65,8 @@ class GraphNode
 
     void draw(std::ostream &os) const;
 
+    static void set_eager_mode(bool mode, bool gpu=false);
+
     private:
     std::string label() const;    
     std::string str() const;

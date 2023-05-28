@@ -317,9 +317,9 @@ void test_draw()
     of.close();
 }
 
-void test_network_XOR_with_pretrained_weights()
+void test_network_XOR_with_pretrained_weights_cpu_lazy()
 {
-    printf("test_network_XOR_with_pretrained_weights\n");
+    printf("test_network_XOR_with_pretrained_weights_cpu_lazy\n");
 
     // input [1, 0]
     GraphNode xs1(Tensor({2}, {0,1}));
@@ -346,11 +346,127 @@ void test_network_XOR_with_pretrained_weights()
     GraphNode v3 = y2 & ow;
     GraphNode y3 = v3.tanh();
 
-    y3.move_to_gpu();
+    //y3.move_to_gpu();
+    TensorPtr out1 = y3.eval();
+    //out1->move_to_ram();
+    printf("%s\n", out1->str().c_str());
+    assert(check_memory_against_array({0.955728}, out1));
+}
+
+void test_network_XOR_with_pretrained_weights_cpu_eager()
+{
+    printf("test_network_XOR_with_pretrained_weights_cpu_eager\n");
+
+    GraphNode::set_eager_mode(true);
+
+    // input [1, 0]
+    GraphNode xs1(Tensor({2}, {0,1}));
+
+    // hidden layer 1 (5 nodes)
+    GraphNode h1w(Tensor({2,5}, {0.3015, 0.7785, 0.0818, 0.6411, -1.3131,
+                                 0.3517, -0.9395, -1.2009, 1.0679, 0.4376}));
+
+    // hidden layer 2 (4 nodes)
+    GraphNode h2w(Tensor({5,4},
+                    {1.5171,  1.2708,  1.3553, -0.3223,
+                     1.4185,  0.2538, -0.9858, -1.7510,
+                     -0.4906, -0.3851, -1.3264,  1.8427,
+                     -0.5821, -0.7318, -0.6390, -2.0936,
+                     -1.1953, -1.0868,  0.4595,  0.4198}));
+
+    // output layer (1)
+    GraphNode ow(Tensor({4, 1}, {-1.0577, -0.2073, -1.1130, -2.1461}));
+
+    GraphNode v1 = xs1 & h1w;
+    GraphNode y1 = v1.tanh();
+    GraphNode v2 = y1 & h2w;
+    GraphNode y2 = v2.tanh();
+    GraphNode v3 = y2 & ow;
+    GraphNode y3 = v3.tanh();
+
+    //y3.move_to_gpu();
+    TensorPtr out1 = y3.eval();
+    //out1->move_to_ram();
+    printf("%s\n", out1->str().c_str());
+    assert(check_memory_against_array({0.955728}, out1));
+
+    GraphNode::set_eager_mode(false);
+}
+
+void test_network_XOR_with_pretrained_weights_gpu_lazy()
+{
+    printf("test_network_XOR_with_pretrained_weights_gpu_lazy\n");
+
+    // input [1, 0]
+    GraphNode xs1(Tensor({2}, {0,1}));
+
+    // hidden layer 1 (5 nodes)
+    GraphNode h1w(Tensor({2,5}, {0.3015, 0.7785, 0.0818, 0.6411, -1.3131,
+                                 0.3517, -0.9395, -1.2009, 1.0679, 0.4376}));
+
+    // hidden layer 2 (4 nodes)
+    GraphNode h2w(Tensor({5,4},
+                    {1.5171,  1.2708,  1.3553, -0.3223,
+                     1.4185,  0.2538, -0.9858, -1.7510,
+                     -0.4906, -0.3851, -1.3264,  1.8427,
+                     -0.5821, -0.7318, -0.6390, -2.0936,
+                     -1.1953, -1.0868,  0.4595,  0.4198}));
+
+    // output layer (1)
+    GraphNode ow(Tensor({4, 1}, {-1.0577, -0.2073, -1.1130, -2.1461}));
+
+    GraphNode v1 = xs1 & h1w;
+    GraphNode y1 = v1.tanh();
+    GraphNode v2 = y1 & h2w;
+    GraphNode y2 = v2.tanh();
+    GraphNode v3 = y2 & ow;
+    GraphNode y3 = v3.tanh();
+
+    //y3.move_to_gpu();
+    TensorPtr out1 = y3.eval();
+    //out1->move_to_ram();
+    printf("%s\n", out1->str().c_str());
+    assert(check_memory_against_array({0.955728}, out1));
+}
+
+void test_network_XOR_with_pretrained_weights_gpu_eager()
+{
+    printf("test_network_XOR_with_pretrained_weights_gpu_eager\n");
+
+    // activate eager mode and force gpu.
+    GraphNode::set_eager_mode(true, true);
+
+    // input [1, 0]
+    GraphNode xs1(Tensor({2}, {0,1}));
+
+    // hidden layer 1 (5 nodes)
+    GraphNode h1w(Tensor({2,5}, {0.3015, 0.7785, 0.0818, 0.6411, -1.3131,
+                                 0.3517, -0.9395, -1.2009, 1.0679, 0.4376}));
+
+    // hidden layer 2 (4 nodes)
+    GraphNode h2w(Tensor({5,4},
+                    {1.5171,  1.2708,  1.3553, -0.3223,
+                     1.4185,  0.2538, -0.9858, -1.7510,
+                     -0.4906, -0.3851, -1.3264,  1.8427,
+                     -0.5821, -0.7318, -0.6390, -2.0936,
+                     -1.1953, -1.0868,  0.4595,  0.4198}));
+
+    // output layer (1)
+    GraphNode ow(Tensor({4, 1}, {-1.0577, -0.2073, -1.1130, -2.1461}));
+
+    GraphNode v1 = xs1 & h1w;
+    GraphNode y1 = v1.tanh();
+    GraphNode v2 = y1 & h2w;
+    GraphNode y2 = v2.tanh();
+    GraphNode v3 = y2 & ow;
+    GraphNode y3 = v3.tanh();
+
     TensorPtr out1 = y3.eval();
     out1->move_to_ram();
     printf("%s\n", out1->str().c_str());
     assert(check_memory_against_array({0.955728}, out1));
+
+    GraphNode::set_eager_mode(false);
 }
 
 int main(int argc, char **argv)
@@ -378,7 +494,10 @@ int main(int argc, char **argv)
     test_graphnodes_pow_gpu();
 
     test_draw();
-    test_network_XOR_with_pretrained_weights();
+    test_network_XOR_with_pretrained_weights_cpu_lazy();
+    test_network_XOR_with_pretrained_weights_cpu_eager();
+    test_network_XOR_with_pretrained_weights_gpu_lazy();
+    test_network_XOR_with_pretrained_weights_gpu_eager();
 
     printf("tensors left in mem: %d\n", __get_existing_tensor_count());
     assertm(__get_existing_tensor_count() == 0, "tensor leaked somewhere");

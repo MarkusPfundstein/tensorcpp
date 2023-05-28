@@ -5,6 +5,8 @@
 #include <random>
 
 std::string random_string(std::size_t length);
+static bool __use_eager_mode__ = false;
+static bool __eager_mode_gpu__ = false;
 
 GraphNode::GraphNode(TensorPtr t)
     : tensor(t), cached_result(nullptr), left(nullptr), right(nullptr), type(node_type::tensor_node)
@@ -79,6 +81,10 @@ GraphNode GraphNode::operator+(const GraphNode &other) const
         GraphNode::comp_node_add
     );
 
+    if (__use_eager_mode__) {
+        op.eval();
+    }
+
     return op;
 }
 
@@ -92,6 +98,10 @@ GraphNode GraphNode::operator*(const GraphNode &other) const
         std::move(b),
         GraphNode::comp_node_mul
     );
+
+    if (__use_eager_mode__) {
+        op.eval();
+    }
 
     return op;
 }
@@ -107,6 +117,10 @@ GraphNode GraphNode::operator/(const GraphNode &other) const
         GraphNode::comp_node_div
     );
 
+    if (__use_eager_mode__) {
+        op.eval();
+    }
+
     return op;
 }
 
@@ -120,6 +134,10 @@ GraphNode GraphNode::operator&(const GraphNode &other) const
         std::move(b),
         GraphNode::comp_node_matmul
     );
+
+    if (__use_eager_mode__) {
+        op.eval();
+    }
 
     return op;
 }
@@ -135,6 +153,10 @@ GraphNode GraphNode::operator-(const GraphNode &other) const
         GraphNode::comp_node_min
     );
 
+    if (__use_eager_mode__) {
+        op.eval();
+    }
+
     return op;
 }
     
@@ -146,6 +168,10 @@ GraphNode GraphNode::operator-() const
         std::move(a),
         GraphNode::comp_node_minself
     );
+
+    if (__use_eager_mode__) {
+        op.eval();
+    }
 
     return op;
 }
@@ -166,6 +192,10 @@ GraphNode GraphNode::pow(float power) const
         GraphNode::comp_node_pow
     );
 
+    if (__use_eager_mode__) {
+        op.eval();
+    }
+
     return op;
 }
 
@@ -178,6 +208,10 @@ GraphNode GraphNode::tanh() const
         GraphNode::comp_node_tanh
     );
 
+    if (__use_eager_mode__) {
+        op.eval();
+    }
+
     return op;
 }
 
@@ -185,6 +219,9 @@ TensorPtr GraphNode::eval()
 {
     // base case
     if (type == node_type::tensor_node) {
+        if (!tensor->is_on_gpu && __eager_mode_gpu__) {
+            tensor->move_to_gpu();
+        }
         return tensor;
     }
 
@@ -347,6 +384,12 @@ void GraphNode::draw(std::ostream &os, const std::string &parent_name, int depth
     if (right) {
         right->draw(os, name, depth + 1);
     }
+}
+
+void GraphNode::set_eager_mode(bool mode, bool on_gpu)
+{
+    __use_eager_mode__ = mode;
+    __eager_mode_gpu__ = on_gpu;
 }
 
 std::string random_string(std::size_t length)
