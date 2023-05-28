@@ -8,20 +8,18 @@
 #define NDEBUG
 #define assertm(exp, msg) assert(((void)msg, exp))
 
-bool within_acceptable_error(float val, float tval) {
-    float acceptable_error = 0.0001;
-
+bool within_acceptable_error(float val, float tval, float acceptable_error=0.0001) {
     if ((tval - acceptable_error) <= val && (tval + acceptable_error) >= val) {
         return true;
     }
     return false;
 }
 
-bool check_memory_against_array(std::vector<float> res, const Tensor& t)
+bool check_memory_against_array(std::vector<float> res, const Tensor& t, float acceptable_error=0.0001)
 {
     int failure_index=-1;
     for (unsigned long i = 0; i < t.nelems; ++i) {
-        if (!within_acceptable_error(res[i], t.memory[i])) {
+        if (!within_acceptable_error(res[i], t.memory[i], acceptable_error)) {
             failure_index = i;
             break;
         }
@@ -396,13 +394,13 @@ void test_dot_product_cpu()
 
     assertm(val == res, "Error dot product via direct dot call");
 
-    Tensor r1 = t1 * t2;
+    Tensor r1 = t1 & t2;
 
     val = r1.memory[0];
 
     assertm(val == res, "Error dot product via tensor mul. t1 * t2");
 
-    Tensor r2 = t2 * t1;
+    Tensor r2 = t2 & t1;
 
     val = r2.memory[0];
 
@@ -426,7 +424,7 @@ void test_dot_product_gpu()
     assertm(val == res, "Error dot product via direct dot call");
 
 
-    Tensor r1 = t1 * t2;
+    Tensor r1 = t1 & t2;
     r1.move_to_ram();
 
     val = r1.memory[0];
@@ -434,7 +432,7 @@ void test_dot_product_gpu()
 
     assertm(val == res, "Error dot product via tensor mul. t1 * t2");
 
-    Tensor r2 = t2 * t1;
+    Tensor r2 = t2 & t1;
     r2.move_to_ram();
 
     val = r2.memory[0];
@@ -758,42 +756,35 @@ void test_mul_mat_with_vec_cpu()
 {
     printf("test_mul_mat_with_vec_cpu\n");
 
-    Tensor t1({2,3}, {0.01, 0.32, -3.43, 3.2, 4.8, 0.0002}, false);
     Tensor t2({3}, {0,1,0}, false);
+    Tensor t1({3,2}, {0.01, 0.32, 
+                      -3.43, 3.2,
+                      4.8, 0.0002}, false);
 
-    Tensor r1 = t1 * t2;
+    Tensor r1 = t2 & t1;
 
     printf("%f\n", r1.memory[0]);
 
-    assert(within_acceptable_error(r1.memory[0], 0.32));
-    assert(within_acceptable_error(r1.memory[1], 4.8));
-
-    Tensor r2 = t2 * t1;
-
-    assert(within_acceptable_error(r2.memory[0], 0.32));
-    assert(within_acceptable_error(r2.memory[1], 4.8));
+    assert(within_acceptable_error(r1.memory[0], -3.43));
+    assert(within_acceptable_error(r1.memory[1], 3.2));
 }
 
 void test_mul_mat_with_vec_gpu()
 {
     printf("test_mul_mat_with_vec_gpu\n");
 
-    Tensor t1({2,3}, {0.01, 0.32, -3.43, 3.2, 4.8, 0.0002}, true);
+    Tensor t1({3,2}, {0.01, 0.32,
+                      -3.43, 3.2,
+                      4.8, 0.0002}, true);
     Tensor t2({3}, {0,1,0}, true);
 
-    Tensor r1 = t1 * t2;
+    Tensor r1 = t2 & t1;
     r1.move_to_ram();
 
     printf("%f\n", r1.memory[0]);
 
-    assert(within_acceptable_error(r1.memory[0], 0.32));
-    assert(within_acceptable_error(r1.memory[1], 4.8));
-
-    Tensor r2 = t2 * t1;
-    r2.move_to_ram();
-
-    assert(within_acceptable_error(r2.memory[0], 0.32));
-    assert(within_acceptable_error(r2.memory[1], 4.8));
+    assert(within_acceptable_error(r1.memory[0], -3.43));
+    assert(within_acceptable_error(r1.memory[1], 3.2));
 }
 
 void test_min_self_gpu()
@@ -837,6 +828,12 @@ void test_pow_cpu()
     Tensor r2 = t2.pow(-2);
 
     assert(check_memory_against_array({1.0, 0.25, 0.1111, 0.0625}, r2));
+
+    Tensor t3({3}, {0.0909022,0.606062,0.00669124}, false);
+
+    Tensor r3 = t3.pow(-2);
+
+    assert(check_memory_against_array({1.2102e+02, 2.7225e+00, 2.2335e+04}, r3, 0.1));
 }
 
 void test_pow_gpu()
@@ -880,6 +877,29 @@ void test_div_tensor_with_tensor_cpu()
     assert(check_memory_against_array({0.5,1,1.5,2,2.5,3}, r1));
 }
 
+void test_div_tensor_mat_with_tensor_mat()
+{
+    printf("test_div_tensor_mat_with_tensor_mat\n");
+
+    Tensor t1({2, 2}, {1,2,3,4});
+    Tensor t2({2, 2}, {4,3,2,1});
+
+    Tensor r1 = t1 / t2;
+
+    printf("%s\n", r1.str().c_str());
+
+    assert(check_memory_against_array({0.25, 0.6667, 1.5, 4.0}, r1));
+
+    Tensor t3({4}, {1,2,3,4});
+    Tensor t4({4}, {4,3,2,1});
+
+    Tensor r4 = t3 / t4;
+
+    printf("%s\n", r4.str().c_str());
+
+    assert(check_memory_against_array({0.25, 0.6667, 1.5, 4.0}, r4));
+}
+
 void test_pointwise_mul_cpu()
 {
     printf("test_pointwise_mul_cpu\n");
@@ -903,6 +923,32 @@ void test_pointwise_mul_gpu()
 
     r1.move_to_ram();
     assert(check_memory_against_array({4,6,6,4}, r1));
+}
+
+void test_tanh_cpu()
+{
+    printf("test_tanh_cpu\n");
+
+    Tensor a({3}, {0.3015, 0.7785, -0.0818});
+
+    Tensor b = a.tanh();
+
+    printf("%s\n", b.str().c_str());
+    assert(check_memory_against_array({0.2927,  0.6518, -0.0816}, b));
+}
+    
+void test_tanh_gpu()
+{
+    printf("test_tanh_gpu\n");
+
+    Tensor a({3}, {0.3015, 0.7785, -0.0818}, true);
+
+    Tensor b = a.tanh();
+    b.move_to_ram();
+
+    printf("%s\n", b.str().c_str());
+
+    assert(check_memory_against_array({0.2927,  0.6518, -0.0816}, b));
 }
 
 int main(int argc, char **argv)
@@ -945,11 +991,15 @@ int main(int argc, char **argv)
     test_pow_cpu();
     test_pow_gpu();
 
-    test_div_tensor_with_scalar_cpu();
-    test_div_tensor_with_tensor_cpu();
-
     test_pointwise_mul_cpu();
     test_pointwise_mul_gpu();
+
+    test_div_tensor_with_scalar_cpu();
+    test_div_tensor_with_tensor_cpu();
+    test_div_tensor_mat_with_tensor_mat();
+
+    test_tanh_cpu();
+    test_tanh_gpu();
 
     assertm(__get_existing_tensor_count() == 0, "tensor leaked somewhere");
     printf("!!!!! ALL TESTS PASSED !!!!!\n");

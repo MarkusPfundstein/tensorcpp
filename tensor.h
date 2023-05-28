@@ -46,6 +46,10 @@ class Tensor
 
     // pow(a, 2)
     Tensor pow(float power) const;
+    Tensor pow(const Tensor& power) const;
+
+    // tanh()
+    Tensor tanh() const;
 
     // dot(a, b)
     static float dot(const Tensor &a, const Tensor &b);

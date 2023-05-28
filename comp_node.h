@@ -11,9 +11,8 @@ typedef std::shared_ptr<Tensor> TensorPtr;
 class GraphNode;
 typedef std::shared_ptr<GraphNode> GraphNodePtr;
 
-class GraphNode : public std::enable_shared_from_this<GraphNode>
+class GraphNode
 {
-
     TensorPtr tensor;
     TensorPtr cached_result;
     GraphNodePtr left;
@@ -22,10 +21,16 @@ class GraphNode : public std::enable_shared_from_this<GraphNode>
     public:
     
     enum node_type {
-        tensor_node     = 1,
-        comp_node       = 100,
-        comp_node_add   = 101,
-        comp_node_mul   = 102
+        tensor_node       = 1,
+        comp_node         = 100,
+        comp_node_add     = 101,
+        comp_node_mul     = 102,
+        comp_node_matmul  = 103,
+        comp_node_min     = 104,
+        comp_node_minself = 105,
+        comp_node_pow     = 106,
+        comp_node_tanh    = 107,
+        comp_node_div     = 108
     };
 
     node_type type;
@@ -36,14 +41,22 @@ class GraphNode : public std::enable_shared_from_this<GraphNode>
     GraphNode(GraphNodePtr l, GraphNodePtr r, node_type type);
     GraphNode(const GraphNode &l, const GraphNode &r, node_type type);
     GraphNode(GraphNode &&l, GraphNode &&r, node_type type);
+    GraphNode(GraphNode &&l, node_type type);
 
     GraphNode(const GraphNode &other);
     GraphNode(GraphNode &&other);
 
     ~GraphNode();
 
-    GraphNode operator+(const GraphNode &other);
-    GraphNode operator*(const GraphNode &other);
+    GraphNode operator+(const GraphNode &other) const;
+    GraphNode operator-(const GraphNode &other) const;
+    GraphNode operator-() const;
+    GraphNode operator*(const GraphNode &other) const;
+    GraphNode operator&(const GraphNode &other) const;
+    GraphNode operator/(const GraphNode &other) const;
+
+    GraphNode pow(float power) const;
+    GraphNode tanh() const;
 
     TensorPtr eval();
 

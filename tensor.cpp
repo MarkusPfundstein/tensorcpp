@@ -158,26 +158,47 @@ Tensor Tensor::mul(float scalar) const
 
 Tensor Tensor::operator&(const Tensor &b) const
 {
-    if (shape.size() == 2 && b.shape.size() == 2) {
+    if (shape.size() == 1 && b.shape.size() == 1 && shape[0] == b.shape[0]) {
+        float res = Tensor::dot(*this, b);
+        return std::move(Tensor({1}, {res}, is_on_gpu));
+    }
+    else if (shape.size() == 2 && b.shape.size() == 2) {
         if (is_on_gpu) {
             return std::forward<Tensor>(gpu_tensor_mul_mat2d_mat2d(*this, b));
         } else {
             return std::forward<Tensor>(cpu_tensor_mul_mat2d_mat2d(*this, b));
         }
     }
-    throw std::runtime_error("matmul only implemented for 2x2");
+    // scalar * matrix or matrix * scalar
+    // or vector * matrix or matrix * vector
+    else if ((shape.size() == 1 && b.shape.size() >= 1) || (shape.size() >= 1 && b.shape.size() == 1)) {
+        if (shape.size() == 1 && b.shape.size() == 2) {
+            if (is_on_gpu) {
+                return std::forward<Tensor>(gpu_tensor_mul_mat2d_vec(b, *this));
+            } else {
+                return std::forward<Tensor>(cpu_tensor_mul_mat2d_vec(b, *this));
+            }
+        }
+    }
+    printf("Unhandled shape sizes in Tensor::operator&. [%ld, %ld]\n", shape.size(), b.shape.size());
+    throw std::runtime_error("Tensor::operator&. invalid matmul for given shapes");
 }
 
 Tensor Tensor::mul(const Tensor &b) const
 {
     //printf("%ld, %ld\n", shape.size(), b.shape.size());
     // dot product or scalar mul
-    if (shape.size() == 1 && b.shape.size() == 1 && shape[0] == b.shape[0]) {
-        float res = Tensor::dot(*this, b);
-        return std::move(Tensor({1}, {res}, is_on_gpu));
+
+    
+    // pointwise mul
+    if (shape.size() == b.shape.size() && shape == b.shape) {
+        if (is_on_gpu) {
+            return std::forward<Tensor>(gpu_pointwise_mul(*this, b));
+        } else {
+            return std::forward<Tensor>(cpu_pointwise_mul(*this, b));
+        }
     }
     // scalar * matrix or matrix * scalar
-    // or vector * matrix or matrix * vector
     else if ((shape.size() == 1 && b.shape.size() >= 1) || (shape.size() >= 1 && b.shape.size() == 1)) {
         // scalar * matrix
         if (shape[0] == 1) {
@@ -197,31 +218,8 @@ Tensor Tensor::mul(const Tensor &b) const
                 s = b.memory[0];
             }
             return std::forward<Tensor>(mul(s));
-        } else if (shape.size() == 1 && b.shape.size() == 2) {
-            if (is_on_gpu) {
-                return std::forward<Tensor>(gpu_tensor_mul_mat2d_vec(b, *this));
-            } else {
-                return std::forward<Tensor>(cpu_tensor_mul_mat2d_vec(b, *this));
-            }
-        } else if (b.shape.size() == 1 && shape.size() == 2) {
-            if (is_on_gpu) {
-                return std::forward<Tensor>(gpu_tensor_mul_mat2d_vec(*this, b));
-            } else {
-                return std::forward<Tensor>(cpu_tensor_mul_mat2d_vec(*this, b));
-            }
-        }
-        printf("this.shape=[%d %d], b.shape=[%d]\n", shape[0], shape[1], b.shape[0]);
-        //throw std::runtime_error("weird stuff in Tensor::mul(const Tensor &b)");
-    }
-    // pointwise mul
-    else if (shape.size() == b.shape.size() && shape == b.shape) {
-        if (is_on_gpu) {
-            return std::forward<Tensor>(gpu_pointwise_mul(*this, b));
-        } else {
-            return std::forward<Tensor>(cpu_pointwise_mul(*this, b));
         }
     }
-
     printf("Unhandled shape sizes in Tensor::mul. [%ld, %ld]\n", shape.size(), b.shape.size());
     throw std::runtime_error("mul for called shapes not implemented");
 }
@@ -400,5 +398,25 @@ Tensor Tensor::pow(float power) const
         return std::forward<Tensor>(gpu_tensor_pow(*this, power));
     } else {
         return std::forward<Tensor>(cpu_tensor_pow(*this, power));
+    }
+}
+
+Tensor Tensor::pow(const Tensor& power) const
+{
+    if (is_on_gpu) {
+        float tmp;
+        cudaMemcpy(&tmp, &power.memory[0], sizeof(float), cudaMemcpyDeviceToHost);
+        return pow(tmp);
+    } else {
+        return pow(power.memory[0]);
+    }
+}
+
+Tensor Tensor::tanh() const
+{
+    if (is_on_gpu) {
+        return std::forward<Tensor>(gpu_tensor_tanh(*this));
+    } else {
+        return std::forward<Tensor>(cpu_tensor_tanh(*this));
     }
 }

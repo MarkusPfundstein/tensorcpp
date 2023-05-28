@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include <stdlib.h>
 #include <math.h>
+#include <sstream>
 #include "tensor_cpu.h"
 
 float cpu_dot(const Tensor &a, const Tensor &b)
@@ -31,7 +32,10 @@ Tensor cpu_tensor_add(const Tensor &a, const Tensor &b)
 Tensor cpu_tensor_mul_mat2d_mat2d(const Tensor& a, const Tensor &b)
 {
     if (a.shape[1] != b.shape[0]) {
-        throw std::runtime_error("Invalid shapes of Tensor a & b. Cannot multiply");
+        std::stringstream ss;
+        ss << "cpu_tensor_mul_mat2d_mat2d: invalid shapes ";
+        ss << "[" << a.shape[0] << "," << a.shape[1] << "] and [" << b.shape[0] << "," << b.shape[1] << "]";
+        throw std::runtime_error(ss.str());
     }
 
     Tensor out({a.shape[0], b.shape[1]});
@@ -51,19 +55,22 @@ Tensor cpu_tensor_mul_mat2d_mat2d(const Tensor& a, const Tensor &b)
     return out;
 }
 
-Tensor cpu_tensor_mul_mat2d_vec(const Tensor &a, const Tensor &b)
+Tensor cpu_tensor_mul_mat2d_vec(const Tensor &mat, const Tensor &vec)
 {
-    if (a.shape[1] != b.shape[0]) {
-        throw std::runtime_error("Invalid shapes of Tensor a & b. Cannot multiply");
+    if (mat.shape[0] != vec.shape[0]) {
+        std::stringstream ss;
+        ss << "cpu_tensor_mul_mat2d_mat2d: invalid shapes ";
+        ss << "[" << mat.shape[0] << "," << mat.shape[1] << "] and [" << vec.shape[0] << "]";
+        throw std::runtime_error(ss.str());
     }
 
-    Tensor out({a.shape[0]});
+    Tensor out({mat.shape[1]});
 
     for (int i = 0; i < out.shape[0]; ++i) {
             float sum = 0.0;
-            for (int ai = 0; ai < a.shape[1]; ++ai) {
-                float aval = a.memory[i * a.shape[1] + ai];
-                float bval = b.memory[ai];
+            for (int ai = 0; ai < mat.shape[0]; ++ai) {
+                float aval = mat.memory[ai * mat.shape[1] + i];
+                float bval = vec.memory[ai];
                 sum += aval * bval;
             }
             out.memory[i] = sum;
@@ -86,6 +93,15 @@ Tensor cpu_tensor_pow(const Tensor& a, float power)
     Tensor t(a.shape);
     for (unsigned long int i = 0; i < a.nelems; ++i) {
         t.memory[i] = std::pow(a.memory[i], power);
+    }
+    return t;
+}
+
+Tensor cpu_tensor_tanh(const Tensor& a)
+{
+    Tensor t(a.shape);
+    for (unsigned long int i = 0; i < a.nelems; ++i) {
+        t.memory[i] = std::tanh(a.memory[i]);
     }
     return t;
 }

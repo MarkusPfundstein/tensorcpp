@@ -14,5 +14,6 @@ Tensor gpu_tensor_mul_mat2d_vec(const Tensor &mat, const Tensor &vec);
 Tensor gpu_tensor_mul(const Tensor &a, float scalar);
 Tensor gpu_tensor_pow(const Tensor &a, float power);
 Tensor gpu_pointwise_mul(const Tensor& a, const Tensor &b);
+Tensor gpu_tensor_tanh(const Tensor &a);
 
 #endif

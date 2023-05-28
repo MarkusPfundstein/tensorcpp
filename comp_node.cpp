@@ -37,6 +37,12 @@ GraphNode::GraphNode(GraphNode &&l, GraphNode &&r, node_type _type)
     right = std::make_shared<GraphNode>(std::forward<GraphNode>(r));
 }
 
+GraphNode::GraphNode(GraphNode &&l, node_type _type)
+    : tensor(nullptr), cached_result(nullptr), left(nullptr), right(nullptr), type(_type)
+{
+    left = std::make_shared<GraphNode>(std::forward<GraphNode>(l));
+}
+
 GraphNode::GraphNode(const GraphNode &other)
     : tensor(other.tensor),
       cached_result(other.cached_result), 
@@ -62,7 +68,7 @@ GraphNode::~GraphNode()
     //printf("delete graphnode \n");
 }
 
-GraphNode GraphNode::operator+(const GraphNode &other)
+GraphNode GraphNode::operator+(const GraphNode &other) const
 {
     GraphNode a = GraphNode(*this);
     GraphNode b = GraphNode(other);
@@ -76,7 +82,7 @@ GraphNode GraphNode::operator+(const GraphNode &other)
     return op;
 }
 
-GraphNode GraphNode::operator*(const GraphNode &other)
+GraphNode GraphNode::operator*(const GraphNode &other) const
 {
     GraphNode a = GraphNode(*this);
     GraphNode b = GraphNode(other);
@@ -85,6 +91,91 @@ GraphNode GraphNode::operator*(const GraphNode &other)
         std::move(a),
         std::move(b),
         GraphNode::comp_node_mul
+    );
+
+    return op;
+}
+
+GraphNode GraphNode::operator/(const GraphNode &other) const
+{
+    GraphNode a = GraphNode(*this);
+    GraphNode b = GraphNode(other);
+    
+    GraphNode op(
+        std::move(a),
+        std::move(b),
+        GraphNode::comp_node_div
+    );
+
+    return op;
+}
+
+GraphNode GraphNode::operator&(const GraphNode &other) const
+{
+    GraphNode a = GraphNode(*this);
+    GraphNode b = GraphNode(other);
+    
+    GraphNode op(
+        std::move(a),
+        std::move(b),
+        GraphNode::comp_node_matmul
+    );
+
+    return op;
+}
+
+GraphNode GraphNode::operator-(const GraphNode &other) const
+{
+    GraphNode a = GraphNode(*this);
+    GraphNode b = GraphNode(other);
+    
+    GraphNode op(
+        std::move(a),
+        std::move(b),
+        GraphNode::comp_node_min
+    );
+
+    return op;
+}
+    
+GraphNode GraphNode::operator-() const
+{
+    GraphNode a = GraphNode(*this);
+    
+    GraphNode op(
+        std::move(a),
+        GraphNode::comp_node_minself
+    );
+
+    return op;
+}
+
+GraphNode GraphNode::pow(float power) const
+{
+    bool scalar_on_gpu = false;
+    if (type == node_type::tensor_node) {
+        scalar_on_gpu = tensor->is_on_gpu;
+    }
+
+    GraphNode a = GraphNode(*this);
+    GraphNode b = GraphNode(Tensor({1}, {power}, scalar_on_gpu));
+    
+    GraphNode op(
+        std::move(a),
+        std::move(b),
+        GraphNode::comp_node_pow
+    );
+
+    return op;
+}
+
+GraphNode GraphNode::tanh() const
+{
+    GraphNode a = GraphNode(*this);
+    
+    GraphNode op(
+        std::move(a),
+        GraphNode::comp_node_tanh
     );
 
     return op;
@@ -102,18 +193,37 @@ TensorPtr GraphNode::eval()
         return cached_result;
     }
 
-    TensorPtr l = left->eval();
-    TensorPtr r = right->eval();
+    TensorPtr l = left ? left->eval() : nullptr;
+    TensorPtr r = right ? right->eval() : nullptr;
 
-    if (type == node_type::comp_node_add) {
-        Tensor c = (*l) + (*r);
-        cached_result = std::make_shared<Tensor>(std::move(c));
-    }
-    else if (type == node_type::comp_node_mul) {
-        Tensor c = (*l) * (*r);
-        cached_result = std::make_shared<Tensor>(std::move(c));
-    } else {
-        throw std::runtime_error("invalid type");
+    switch (type) {
+        case node_type::comp_node_add:
+            cached_result = std::make_shared<Tensor>((*l) + (*r));
+            break;
+        case node_type::comp_node_mul:
+            cached_result = std::make_shared<Tensor>((*l) * (*r));
+            break;
+        case node_type::comp_node_div:
+            cached_result = std::make_shared<Tensor>((*l) / (*r));
+            break;
+        case node_type::comp_node_matmul:
+            cached_result = std::make_shared<Tensor>((*l) & (*r));
+            break;
+        case node_type::comp_node_min:
+            cached_result = std::make_shared<Tensor>((*l) - (*r));
+            break;
+        case node_type::comp_node_minself:
+            cached_result = std::make_shared<Tensor>(-(*l));
+            break;
+        case node_type::comp_node_pow:
+            cached_result = std::make_shared<Tensor>(l->pow(*r));
+            break;
+        case node_type::comp_node_tanh:
+            cached_result = std::make_shared<Tensor>(l->tanh());
+            break;
+        case node_type::comp_node:
+        case node_type::tensor_node:
+            throw std::runtime_error("GraphNode::eval(). invalid comp node type");
     }
     return cached_result;
 }
@@ -127,8 +237,12 @@ void GraphNode::move_to_gpu()
         return;
     }
 
-    left->move_to_gpu();
-    right->move_to_gpu();
+    if (left) {
+        left->move_to_gpu();
+    }
+    if (right) {
+        right->move_to_gpu();
+    }
 }
 
 void GraphNode::move_to_ram()
@@ -140,36 +254,66 @@ void GraphNode::move_to_ram()
         return;
     }
 
-    left->move_to_ram();
-    right->move_to_ram();
+    if (left) {
+        left->move_to_ram();
+    }
+    if (right) {
+        right->move_to_ram();
+    }
 }
 
 std::string GraphNode::label() const
 {
     switch (type) {
         case GraphNode::node_type::tensor_node:
-        return tensor->str();
+            return tensor->str();
         case GraphNode::node_type::comp_node_add:
-        return "+";
+            return "+";
         case GraphNode::node_type::comp_node_mul:
-        return "*";
-        default:
-        return "err";
+            return "*";
+        case GraphNode::node_type::comp_node_div:
+            return "/";
+        case GraphNode::node_type::comp_node_matmul:
+            return "&";
+        case GraphNode::comp_node_min:
+            return "-";
+        case GraphNode::comp_node_minself:
+            return "-";
+        case GraphNode::comp_node_pow:
+            return "^";
+        case GraphNode::comp_node_tanh:
+            return "tanh";
+        case GraphNode::node_type::comp_node:
+            break;
     }
+    return "err";
 }
 
 std::string GraphNode::str() const
 {
     switch (type) {
         case GraphNode::node_type::tensor_node:
-        return "TENSOR";
+            return "TENSOR";
         case GraphNode::node_type::comp_node_add:
-        return "PLUS";
+            return "PLUS";
         case GraphNode::node_type::comp_node_mul:
-        return "MUL";
-        default:
-        return "err";
+            return "MUL";
+        case GraphNode::node_type::comp_node_div:
+            return "DIV";
+        case GraphNode::comp_node_matmul:
+            return "MATMUL";
+        case GraphNode::comp_node_min:
+            return "MIN";
+        case GraphNode::comp_node_minself:
+            return "MINSELF";
+        case GraphNode::comp_node_pow:
+            return "POW";
+        case GraphNode::comp_node_tanh:
+            return "TANH";
+        case GraphNode::node_type::comp_node:
+            break;
     }
+    return "err";
 }
 
 void GraphNode::draw(std::ostream &os) const
@@ -197,8 +341,12 @@ void GraphNode::draw(std::ostream &os, const std::string &parent_name, int depth
         return;
     }
 
-    left->draw(os, name, depth + 1);
-    right->draw(os, name, depth + 1);
+    if (left) {
+        left->draw(os, name, depth + 1);
+    }
+    if (right) {
+        right->draw(os, name, depth + 1);
+    }
 }
 
 std::string random_string(std::size_t length)
