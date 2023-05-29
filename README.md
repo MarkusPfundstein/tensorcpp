@@ -2,6 +2,8 @@
 
 tensorcpp is a Tensor library with autograd. It has a cuda and cpu backend. It is an educational program and should be treated as such.
 
+Right now, it will only compile on Linux and with CUDA GPUs of architecture compute_50 and sm_50.
+
 ## Example
 
 ### Raw tensor ops
