@@ -120,6 +120,33 @@ Tensor cpu_pointwise_mul(const Tensor& a, const Tensor &b)
     return t;
 }
 
+Tensor cpu_tensor_relu(const Tensor &a)
+{
+    Tensor t(a.shape);
+    for (unsigned long int i = 0; i < a.nelems; ++i) {
+        t.memory[i] = a.memory[i] > 0.0 ? a.memory[i] : 0.0;
+    }
+    return t;
+}
+
+Tensor cpu_tensor_sin(const Tensor &a)
+{
+    Tensor t(a.shape);
+    for (unsigned long int i = 0; i < a.nelems; ++i) {
+        t.memory[i] = std::sin(a.memory[i]);
+    }
+    return t;
+}
+
+Tensor cpu_tensor_cos(const Tensor &a)
+{
+    Tensor t(a.shape);
+    for (unsigned long int i = 0; i < a.nelems; ++i) {
+        t.memory[i] = std::cos(a.memory[i]);
+    }
+    return t;
+}
+
 float *alloc_ram(int n_elems)
 {
     return (float*)malloc(sizeof(float) * n_elems);

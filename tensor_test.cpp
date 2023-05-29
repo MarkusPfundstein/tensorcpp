@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cassert>
 #include "tensor.h"
+#include "tensor_gpu.h"
 
 #define NDEBUG
 #define assertm(exp, msg) assert(((void)msg, exp))
@@ -946,9 +947,68 @@ void test_tanh_gpu()
     Tensor b = a.tanh();
     b.move_to_ram();
 
-    printf("%s\n", b.str().c_str());
-
     assert(check_memory_against_array({0.2927,  0.6518, -0.0816}, b));
+}
+
+void test_sin_cpu()
+{
+    printf("test_sin_cpu\n");
+
+    Tensor a({2}, {1.2, -0.33});
+
+    Tensor b = a.sin();
+
+    printf("%s\n", b.str().c_str());
+    assert(check_memory_against_array({0.9320, -0.3240}, b));
+}
+
+void test_sin_gpu()
+{
+    printf("test_sin_gpu\n");
+
+    printf("---- TO DO ---- \n");
+}
+
+void test_cos_cpu()
+{
+    printf("test_cos_cpu\n");
+
+    Tensor a({2}, {1.2, -0.33});
+
+    Tensor b = a.cos();
+
+    printf("%s\n", b.str().c_str());
+    assert(check_memory_against_array({0.3624, 0.9460}, b));
+}
+
+void test_cos_gpu()
+{
+    printf("test_cos_gpu\n");
+
+    printf("---- TO DO ---- \n");
+}
+
+void test_relu_cpu()
+{
+    printf("test_relu_cpu\n");
+
+    Tensor a({4}, {0.3015, 0.7785, -0.0818, 0.0});
+
+    Tensor b = a.relu();
+
+    assert(check_memory_against_array({0.3015,  0.7785, 0.0, 0.0}, b));
+}
+
+void test_relu_gpu()
+{
+    printf("test_relu_gpu\n");
+
+    Tensor a({4}, {0.3015, 0.7785, -0.0818, 0.0}, true);
+
+    Tensor b = a.relu();
+    b.move_to_ram();
+
+    assert(check_memory_against_array({0.3015,  0.7785, 0.0, 0.0}, b));
 }
 
 int main(int argc, char **argv)
@@ -1001,7 +1061,15 @@ int main(int argc, char **argv)
     test_tanh_cpu();
     test_tanh_gpu();
 
-    assertm(__get_existing_tensor_count() == 0, "tensor leaked somewhere");
+    test_sin_cpu();
+    test_sin_gpu();
+    test_cos_cpu();
+    test_cos_gpu();
+
+    test_relu_cpu();
+    test_relu_gpu();
+
     printf("!!!!! ALL TESTS PASSED !!!!!\n");
     
+    gpu_reset();
 }

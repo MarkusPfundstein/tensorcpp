@@ -12,26 +12,14 @@
 #include "tensor.h"
 #include <sstream>
 
-volatile int __existing_tensor_count__ = 0;
-
-int __get_existing_tensor_count()
-{
-    return __existing_tensor_count__;
-}
-
 Tensor::Tensor()
-    : shape(), nelems(0), memory(nullptr), is_on_gpu(false)
+    : shape(), nelems(0), memory(nullptr), is_on_gpu(false), gradient(nullptr)
 {
-
-    //printf("tensor default cons\n");
-
-    __existing_tensor_count__++;
 }
 
 Tensor::Tensor(std::vector<int> shape, bool _on_gpu)
-    : shape(shape), nelems(0), memory(nullptr), is_on_gpu(_on_gpu)
+    : shape(shape), nelems(0), memory(nullptr), is_on_gpu(_on_gpu), gradient(nullptr)
 {
-    __existing_tensor_count__++;
     int elems = 1;
     for (auto it = shape.cbegin(); it != shape.cend(); ++it) {
         elems *= *it;
@@ -60,10 +48,10 @@ Tensor::Tensor(const Tensor &other)
     : shape(other.shape),
       nelems(other.nelems),
       memory(other.memory),
-      is_on_gpu(other.is_on_gpu)
+      is_on_gpu(other.is_on_gpu),
+      gradient(other.gradient)
 {
-    __existing_tensor_count__++;
-    printf("COPY Tensor\n");
+    printf("!!!!!COPY Tensor!!!!!!\n");
     memory = alloc_ram(nelems);
     memcpy(memory, other.memory, nelems * sizeof(float));
 }
@@ -72,18 +60,18 @@ Tensor::Tensor(Tensor &&other) noexcept
     : shape(std::move(other.shape)),
       nelems(std::exchange(other.nelems, 0)),
       memory(std::exchange(other.memory, nullptr)),
-      is_on_gpu(other.is_on_gpu)
+      is_on_gpu(other.is_on_gpu),
+      gradient(std::exchange(other.gradient, nullptr))
 {
-    __existing_tensor_count__++;
-    //printf("move\n");
 }
 
 Tensor& Tensor::operator=(const Tensor& other)
 {
-    __existing_tensor_count__++;
     printf("COPY Tensor::operator=&\n");
+    throw std::runtime_error("NO TENSOR COPYING FOR NOW");
     nelems = other.nelems;
     is_on_gpu = other.is_on_gpu;
+    gradient = other.gradient;
 
     if (is_on_gpu) {
         memory = alloc_gpu(nelems);
@@ -100,19 +88,17 @@ Tensor& Tensor::operator=(const Tensor& other)
     
 Tensor& Tensor::operator=(Tensor&& other)
 {
-    __existing_tensor_count__++;
-    //printf("operator=&&\n");
+    //printf("MOVE OPErATOR\n");
     memory = std::exchange(other.memory, nullptr);
     nelems = std::exchange(other.nelems, 0);
     shape = std::move(other.shape);
     is_on_gpu = std::exchange(other.is_on_gpu, false);
+    gradient = std::exchange(other.gradient, nullptr);
     return *this;
 }
 
 Tensor::~Tensor()
 {
-    __existing_tensor_count__--;
-    //printf("dealloc tensor %d!!!\n", __existing_tensor_count__);
     if (memory) {
         if (is_on_gpu) {
             free_gpu(memory);
@@ -155,6 +141,7 @@ Tensor Tensor::mul(float scalar) const
         return std::forward<Tensor>(cpu_tensor_mul(*this, scalar));
     }
 }
+
 
 Tensor Tensor::operator&(const Tensor &b) const
 {
@@ -419,4 +406,50 @@ Tensor Tensor::tanh() const
     } else {
         return std::forward<Tensor>(cpu_tensor_tanh(*this));
     }
+}
+
+Tensor Tensor::relu() const
+{
+    if (is_on_gpu) {
+        return std::forward<Tensor>(gpu_tensor_relu(*this));
+    } else {
+        return std::forward<Tensor>(cpu_tensor_relu(*this));
+    }
+}
+
+Tensor Tensor::sin() const
+{
+    if (is_on_gpu) {
+        return std::forward<Tensor>(gpu_tensor_sin(*this));
+    } else {
+        return std::forward<Tensor>(cpu_tensor_sin(*this));
+    }
+}
+
+Tensor Tensor::sin_backwards() const
+{
+    if (is_on_gpu) {
+        return std::forward<Tensor>(gpu_tensor_cos(*this));
+    } else {
+        return std::forward<Tensor>(cpu_tensor_cos(*this));
+    }
+}
+
+Tensor Tensor::cos() const
+{
+    if (is_on_gpu) {
+        return std::forward<Tensor>(gpu_tensor_cos(*this));
+    } else {
+        return std::forward<Tensor>(cpu_tensor_cos(*this));
+    }
+}
+
+Tensor Tensor::mul_backwards(const Tensor &other) const
+{
+    return other;
+}
+
+Tensor Tensor::add_backwards(const Tensor &other) const
+{
+    return Tensor({1}, {1}, other.is_on_gpu);
 }

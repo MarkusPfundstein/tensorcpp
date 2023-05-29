@@ -15,5 +15,10 @@ Tensor gpu_tensor_mul(const Tensor &a, float scalar);
 Tensor gpu_tensor_pow(const Tensor &a, float power);
 Tensor gpu_pointwise_mul(const Tensor& a, const Tensor &b);
 Tensor gpu_tensor_tanh(const Tensor &a);
+Tensor gpu_tensor_relu(const Tensor &a);
+Tensor gpu_tensor_sin(const Tensor &a);
+Tensor gpu_tensor_cos(const Tensor &a);
+
+void gpu_reset();
 
 #endif

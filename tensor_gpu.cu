@@ -346,3 +346,46 @@ Tensor gpu_tensor_tanh(const Tensor &a)
 
     return out;
 }
+
+__global__ void tensor_relu(float *a, float *out, int nelems)
+{
+    int id = blockDim.x * blockIdx.x + threadIdx.x;
+    if (id < nelems) {
+        out[id] = a[id] > 0.0 ? a[id] : 0.0;
+    }
+}
+
+Tensor gpu_tensor_relu(const Tensor &a)
+{
+    if (!a.is_on_gpu) {
+        throw std::runtime_error("Tensor not on gpu");
+    }
+
+    Tensor out(a.shape, true);
+
+    int thr_per_blk = 256;
+    int blk_in_grid = ceil( float(a.nelems) / thr_per_blk );
+
+    tensor_relu<<<blk_in_grid, thr_per_blk>>>(a.memory, out.memory, a.nelems);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        throw std::runtime_error(std::string("error tensor_relu: ") + cudaGetErrorString(err));
+    }
+
+    return out;
+}
+
+Tensor gpu_tensor_sin(const Tensor &a)
+{
+    throw std::runtime_error("gpu_tensor_sin not implemented");
+}
+
+Tensor gpu_tensor_cos(const Tensor &a)
+{
+    throw std::runtime_error("gpu_tensor_cos not implemented");
+}
+
+void gpu_reset()
+{
+    cudaDeviceReset();
+}

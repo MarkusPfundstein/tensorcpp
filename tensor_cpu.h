@@ -12,6 +12,9 @@ Tensor cpu_tensor_mul(const Tensor& a, float scalar);
 Tensor cpu_tensor_pow(const Tensor& a, float power);
 Tensor cpu_pointwise_mul(const Tensor& a, const Tensor &b);
 Tensor cpu_tensor_tanh(const Tensor &a);
+Tensor cpu_tensor_relu(const Tensor &a);
+Tensor cpu_tensor_sin(const Tensor &a);
+Tensor cpu_tensor_cos(const Tensor &a);
 
 float *alloc_ram(int n_elems);
 void free_ram(float *ptr);

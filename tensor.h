@@ -1,7 +1,11 @@
 #ifndef TENSOR_H
 #define TENSOR_H
 
+#include <memory>
 #include <vector>
+
+class Tensor;
+typedef std::shared_ptr<Tensor> TensorPtr;
 
 class Tensor
 {
@@ -10,6 +14,7 @@ class Tensor
     unsigned long int nelems;
     float *memory;
     bool is_on_gpu;
+    TensorPtr gradient;
 
     Tensor();
     Tensor(std::vector<int> shape, bool _on_gpu=false);
@@ -26,6 +31,7 @@ class Tensor
     /* a + b */
     Tensor add(const Tensor &other) const;
     Tensor operator+(const Tensor &other) const;
+    Tensor add_backwards(const Tensor &other) const;
 
     /* -a */
     Tensor operator-() const;
@@ -36,6 +42,7 @@ class Tensor
     // a * b
     Tensor mul(const Tensor &b) const;
     Tensor operator*(const Tensor &b) const;
+    Tensor mul_backwards(const Tensor &other) const;
 
     // a @ b (matmul)
     Tensor operator&(const Tensor &b) const;
@@ -53,6 +60,16 @@ class Tensor
 
     // dot(a, b)
     static float dot(const Tensor &a, const Tensor &b);
+
+    // relu
+    Tensor relu() const;
+
+    // sin
+    Tensor sin() const;
+    Tensor sin_backwards() const;
+
+    // cos
+    Tensor cos() const;
 
     // a / b
     Tensor operator/(float scalar);
