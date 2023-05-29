@@ -4,6 +4,12 @@ tensorcpp is a Tensor library with autograd. It has a cuda and cpu backend. It i
 
 Right now, it will only compile on Linux and with CUDA GPUs of architecture compute_50 and sm_50.
 
+## Building & Running
+
+- `./build.bash` for compiling and linking
+- `./build/tensor_test` for tensor class related unit tests
+- `./build/comp_graph_test` for computation graph related unit tests
+
 ## Example
 
 ### Raw tensor ops
