@@ -22,20 +22,22 @@ assert(within_acceptable_error(r1.memory[1], 3.2));
 ### Pre-trained feed forward network using computation graph
 
 ```
+// eager mode on GPU for immediate computations
+GraphNode::set_eager_mode(true, true);
+
 // input [1, 0]
 GraphNode xs1(Tensor({2}, {0,1}));
 
 // hidden layer 1 (5 nodes)
-GraphNode h1w(Tensor({2,5}, {0.3015, 0.7785, 0.0818, 0.6411, -1.3131,
-                                0.3517, -0.9395, -1.2009, 1.0679, 0.4376}));
+GraphNode h1w(Tensor({2,5}, { 0.3015, 0.7785, 0.0818, 0.6411, -1.3131,
+                              0.3517, -0.9395, -1.2009, 1.0679, 0.4376}));
 
 // hidden layer 2 (4 nodes)
-GraphNode h2w(Tensor({5,4},
-                {1.5171,  1.2708,  1.3553, -0.3223,
-                    1.4185,  0.2538, -0.9858, -1.7510,
-                    -0.4906, -0.3851, -1.3264,  1.8427,
-                    -0.5821, -0.7318, -0.6390, -2.0936,
-                    -1.1953, -1.0868,  0.4595,  0.4198}));
+GraphNode h2w(Tensor({5,4}, { 1.5171,  1.2708,  1.3553, -0.3223,
+                              1.4185,  0.2538, -0.9858, -1.7510,
+                             -0.4906, -0.3851, -1.3264,  1.8427,
+                             -0.5821, -0.7318, -0.6390, -2.0936,
+                             -1.1953, -1.0868,  0.4595,  0.4198}));
 
 // output layer (1)
 GraphNode ow(Tensor({4, 1}, {-1.0577, -0.2073, -1.1130, -2.1461}));
