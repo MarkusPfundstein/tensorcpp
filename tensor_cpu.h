@@ -15,6 +15,8 @@ Tensor cpu_tensor_tanh(const Tensor &a);
 Tensor cpu_tensor_relu(const Tensor &a);
 Tensor cpu_tensor_sin(const Tensor &a);
 Tensor cpu_tensor_cos(const Tensor &a);
+Tensor cpu_tensor_outer(const Tensor &a, const Tensor &b);
+void cpu_mat2d_transpose(Tensor &a);
 
 float *alloc_ram(int n_elems);
 void free_ram(float *ptr);

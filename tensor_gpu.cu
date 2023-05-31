@@ -385,6 +385,16 @@ Tensor gpu_tensor_cos(const Tensor &a)
     throw std::runtime_error("gpu_tensor_cos not implemented");
 }
 
+Tensor gpu_tensor_outer(const Tensor &a, const Tensor &b)
+{
+    throw std::runtime_error("gpu_tensor_outer not implemented");
+}
+
+void gpu_mat2d_transpose(Tensor &a)
+{
+    throw std::runtime_error("gpu_mat2d_transpose");
+}
+
 void gpu_reset()
 {
     cudaDeviceReset();

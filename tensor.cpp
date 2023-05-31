@@ -111,9 +111,51 @@ Tensor::~Tensor()
 
 unsigned int Tensor::dimensions() const
 {
-    return shape.size();
+    if (shape.size() == 1) {
+        return 1;
+    }
+
+    bool all_ones = true; 
+    for (std::size_t i = 0; i < shape.size(); ++i) {
+        if (shape[i] != 1) {
+            all_ones = false;
+            break;
+        }
+    }
+    if (all_ones) {
+        return 1;
+    }
+
+    unsigned int dims = 0;
+    for (std::size_t i = 0; i < shape.size(); ++i) {
+        if (shape[i] > 1) {
+            dims++;
+        }
+    }
+    return dims;
 }
 
+bool Tensor::is_scalar() const
+{
+    for (std::size_t i = 0; i < shape.size(); ++i) {
+        if (shape[i] > 1) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Tensor::is_vec() const
+{
+    bool b = dimensions() == 1;
+    bool c = !is_scalar();
+    return b && c;
+}
+
+bool Tensor::is_mat2d() const
+{
+    return dimensions() == 2;
+}
 
 Tensor Tensor::operator+(const Tensor &other) const
 {
@@ -142,33 +184,75 @@ Tensor Tensor::mul(float scalar) const
     }
 }
 
-
-Tensor Tensor::operator&(const Tensor &b) const
+Tensor Tensor::matmul(const Tensor &b) const
 {
-    if (shape.size() == 1 && b.shape.size() == 1 && shape[0] == b.shape[0]) {
+    if (is_vec() && b.is_vec()) {
+    //if (shape.size() == 1 && b.shape.size() == 1 && shape[0] == b.shape[0]) {
         float res = Tensor::dot(*this, b);
         return std::move(Tensor({1}, {res}, is_on_gpu));
     }
-    else if (shape.size() == 2 && b.shape.size() == 2) {
+    if (is_mat2d() && b.is_mat2d()) {
+    //else if (shape.size() == 2 && b.shape.size() == 2) {
         if (is_on_gpu) {
             return std::forward<Tensor>(gpu_tensor_mul_mat2d_mat2d(*this, b));
         } else {
             return std::forward<Tensor>(cpu_tensor_mul_mat2d_mat2d(*this, b));
         }
     }
-    // scalar * matrix or matrix * scalar
-    // or vector * matrix or matrix * vector
-    else if ((shape.size() == 1 && b.shape.size() >= 1) || (shape.size() >= 1 && b.shape.size() == 1)) {
-        if (shape.size() == 1 && b.shape.size() == 2) {
+    // vector * matrix or matrix * vector
+    if (is_vec() && b.is_mat2d()) {
+    //else if ((shape.size() == 1 && b.shape.size() >= 1) || (shape.size() >= 1 && b.shape.size() == 1)) {
+        if (is_vec() && b.is_mat2d()) {
             if (is_on_gpu) {
                 return std::forward<Tensor>(gpu_tensor_mul_mat2d_vec(b, *this));
             } else {
                 return std::forward<Tensor>(cpu_tensor_mul_mat2d_vec(b, *this));
             }
+        } else if (shape.size() == 2 && b.shape.size() == 1) {
+            /*
+            if (is_on_gpu) {
+                Tensor tmp(b);
+                tmp.shape = {b.shape[0], 1};
+                
+                return std::forward<Tensor>(gpu_tensor_mul_mat2d_vec(*this, tmp));
+            } else {
+                Tensor tmp(b);
+                tmp.shape = {b.shape[0], 1};
+                printf("%s & %s\n", str().c_str(), tmp.str().c_str());
+                return std::forward<Tensor>(cpu_tensor_mul_mat2d_vec(*this, tmp));
+            }
+            */
         }
     }
-    printf("Unhandled shape sizes in Tensor::operator&. [%ld, %ld]\n", shape.size(), b.shape.size());
-    throw std::runtime_error("Tensor::operator&. invalid matmul for given shapes");
+    printf("Unhandled shape sizes in Tensor::matmul. (%s %s)\n", str().c_str(), b.str().c_str());
+    throw std::runtime_error("Tensor::matmul. Invalid shapes");
+}
+
+Tensor Tensor::operator&(const Tensor &b) const
+{
+    return matmul(b);
+}
+
+Tensor Tensor::T() const 
+{
+    Tensor t(*this);
+    if (is_on_gpu) {
+        gpu_mat2d_transpose(t);
+    } else {
+        cpu_mat2d_transpose(t);
+    }
+
+    return t; 
+}
+
+const Tensor& Tensor::T_()
+{
+    if (is_on_gpu) {
+        gpu_mat2d_transpose(*this);
+    } else {
+        cpu_mat2d_transpose(*this);
+    }
+    return *this;
 }
 
 Tensor Tensor::mul(const Tensor &b) const
@@ -207,8 +291,17 @@ Tensor Tensor::mul(const Tensor &b) const
             return std::forward<Tensor>(mul(s));
         }
     }
-    printf("Unhandled shape sizes in Tensor::mul. [%ld, %ld]\n", shape.size(), b.shape.size());
+    printf("Unhandled shape sizes in Tensor::mul. (%s %s)\n", str().c_str(), b.str().c_str());
     throw std::runtime_error("mul for called shapes not implemented");
+}
+
+Tensor Tensor::outer(const Tensor &b) const
+{
+    if (is_on_gpu) {
+        return std::forward<Tensor>(gpu_tensor_outer(*this, b));
+    } else {
+        return std::forward<Tensor>(cpu_tensor_outer(*this, b));
+    }
 }
 
 Tensor Tensor::operator-() const
@@ -310,6 +403,7 @@ void Tensor::move_to_ram()
 void Tensor::set_data(const std::vector<float> &data)
 {
     if (data.size() != nelems) {
+        printf("Error tensor %s: data size: %ld, tensor size: %ld\n", str().c_str(), data.size(), nelems);
         throw std::runtime_error("Data has different size than sensor");
     }
     if (is_on_gpu) {
@@ -442,6 +536,11 @@ Tensor Tensor::cos() const
     } else {
         return std::forward<Tensor>(cpu_tensor_cos(*this));
     }
+}
+
+Tensor Tensor::matmul_backwards(const Tensor &other) const
+{
+    return other;
 }
 
 Tensor Tensor::mul_backwards(const Tensor &other) const

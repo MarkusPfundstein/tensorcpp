@@ -303,19 +303,22 @@ TensorPtr GraphNode::get_tensor() const
     return tensor ? tensor : nullptr;
 }
 
-void GraphNode::backward_step(const Tensor &parent_grad)
+void GraphNode::backward_step(Tensor &parent_grad)
 {
-    std::cout << "\tVisit node " << label() << " [" << tensor->str() << "]" << std::endl;
+    std::cout << "\tVisit node " << label() << (type==node_type::tensor_node?"":" [ "+tensor->str()+" ]") << std::endl;
 
     // if we reach a node, we check if we need to store gradient. if not we are done
     if (type == node_type::tensor_node) {
         // nothing to do
+        std::cout << "\t\t\tgot gradient: " << parent_grad.str().c_str() << std::endl;
         if (!requires_grad) {
             std::cout << "\t\t\tno grad required. done" << std::endl;
             return;
         }
 
-        std::cout << "\t\t\tstore gradient" << std::endl;
+        if (this->tensor->shape != parent_grad.shape) {
+            throw std::runtime_error("cant assign gradient with different shape than tensor shape");
+        }
         TensorPtr new_grad = std::shared_ptr<Tensor>(new Tensor(std::move(parent_grad)));
         this->tensor->gradient = new_grad;
         return;
@@ -335,20 +338,50 @@ void GraphNode::backward_step(const Tensor &parent_grad)
             gl = left->tensor->add_backwards(*right->tensor);
             gr = right->tensor->add_backwards(*left->tensor);
             break;
+        case node_type::comp_node_matmul:
+            gl = left->tensor->matmul_backwards(*right->tensor);
+            gr = right->tensor->matmul_backwards(*left->tensor);
+            break;
         default:
             throw std::runtime_error("backward pass for op not implemented");
         break;
     }
 
-    if (gl.memory != nullptr) {
-        std::cout << "\t\tgot gradient_left: " << gl.str() << std::endl;
-        Tensor g2 = gl * parent_grad;
-        left->backward_step(g2);
-    }
+    // go right
     if (gr.memory != nullptr) {
-        std::cout << "\t\tgot gradient_right: " << gr.str() << std::endl;
-        Tensor g2 = gr * parent_grad;
+        std::cout << "\t\tgot gradient from left node: " << gr.str() << std::endl;
+        std::cout << "\t\tgot parent_grad: " << parent_grad.str() << std::endl;
+        Tensor g2;
+        if (type == node_type::comp_node_matmul && gr.is_mat2d()) {
+            g2 = parent_grad & gr.T_();
+            std::cout << "\t\t\tmatmul.T result: " << g2.str() << std::endl;
+        }
+        else if (type == node_type::comp_node_matmul && gr.is_vec() && parent_grad.is_vec()) {
+            g2 = gr.outer(parent_grad);
+            std::cout << "\t\t\touter result: " << g2.str() << std::endl;
+        } else {
+            g2 = gr * parent_grad;
+            std::cout << "\t\t\tmul result: " << g2.str() << std::endl;
+        }
         right->backward_step(g2);
+    }
+    // go left
+    if (gl.memory != nullptr) {
+        std::cout << "\t\tgot gradient from right node: " << gl.str() << std::endl;
+        std::cout << "\t\tgot parent_grad: " << parent_grad.str() << std::endl;
+        Tensor g2;
+        if (type == node_type::comp_node_matmul && gl.is_mat2d()) {
+            g2 = parent_grad & gl.T_();
+            std::cout << "\t\t\tmatmul.T result: " << g2.str() << std::endl;
+        }
+        else if (type ==node_type::comp_node_matmul && gl.is_vec() && parent_grad.is_vec()) {
+            g2 = gl.outer(parent_grad);
+            std::cout << "\t\t\touter result: " << g2.str() << std::endl;
+        } else {
+            g2 = gl * parent_grad;
+            std::cout << "\t\t\tmul result: " << g2.str() << std::endl;
+        }
+        left->backward_step(g2);
     }
 
     std::cout << "\tLeave node " << label() << " [" << tensor->str() << "]" << std::endl;

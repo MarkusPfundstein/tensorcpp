@@ -1,27 +1,27 @@
 digraph G {
-MATMUL_Output_07zjz[label="&"]
-TENSOR_MATMUL_Output_07zjz_1sBzB[label="[Tensor(shape={3}, mem=[0,1,0], gpu=1)]\nTensor(shape={3}, mem=[0,1,0], gpu=1)"]
-MATMUL_Output_07zjz -> TENSOR_MATMUL_Output_07zjz_1sBzB
-MUL_MATMUL_Output_07zjz_1VfJj[label="*"]
-MATMUL_Output_07zjz -> MUL_MATMUL_Output_07zjz_1VfJj
-MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m[label="[&]\nTensor(shape={1}, mem=[570], gpu=1)"]
-MUL_MATMUL_Output_07zjz_1VfJj -> MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m
-MUL_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3y3m2[label="[*]\nTensor(shape={3}, mem=[5,10,15], gpu=1)"]
-MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m -> MUL_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3y3m2
-TENSOR_MUL_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3y3m2_4m2fW[label="[Tensor(shape={1}, mem=[5], gpu=1)]\nTensor(shape={1}, mem=[5], gpu=1)"]
-MUL_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3y3m2 -> TENSOR_MUL_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3y3m2_4m2fW
-TENSOR_MUL_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3y3m2_46T0g[label="[Tensor(shape={3}, mem=[1,2,3], gpu=1)]\nTensor(shape={3}, mem=[1,2,3], gpu=1)"]
-MUL_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3y3m2 -> TENSOR_MUL_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3y3m2_46T0g
-PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F[label="[+]\nTensor(shape={3}, mem=[11,17,23], gpu=1)"]
-MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m -> PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F
-MUL_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4GkmI[label="[*]\nTensor(shape={3}, mem=[5,10,15], gpu=1)"]
-PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F -> MUL_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4GkmI
-TENSOR_MUL_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4GkmI_5QdhZ[label="[Tensor(shape={1}, mem=[5], gpu=1)]\nTensor(shape={1}, mem=[5], gpu=1)"]
-MUL_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4GkmI -> TENSOR_MUL_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4GkmI_5QdhZ
-TENSOR_MUL_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4GkmI_5IlwB[label="[Tensor(shape={3}, mem=[1,2,3], gpu=1)]\nTensor(shape={3}, mem=[1,2,3], gpu=1)"]
-MUL_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4GkmI -> TENSOR_MUL_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4GkmI_5IlwB
-TENSOR_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4y3Ec[label="[Tensor(shape={3}, mem=[6,7,8], gpu=1)]\nTensor(shape={3}, mem=[6,7,8], gpu=1)"]
-PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F -> TENSOR_PLUS_MATMUL_MUL_MATMUL_Output_07zjz_1VfJj_2xY1m_3PW2F_4y3Ec
-TENSOR_MUL_MATMUL_Output_07zjz_1VfJj_2IUsF[label="[Tensor(shape={3,2}, mem=[0.01,0.32,-3.43,3.2,4.8,0.0002], gpu=1)]\nTensor(shape={3,2}, mem=[0.01,0.32,-3.43,3.2,4.8,0.0002], gpu=1)"]
-MUL_MATMUL_Output_07zjz_1VfJj -> TENSOR_MUL_MATMUL_Output_07zjz_1VfJj_2IUsF
+MATMUL_Output_09Ruk[label="&"]
+TENSOR_MATMUL_Output_09Ruk_1M5Ji[label="[Tensor(shape={3}, mem=[0,1,0], gpu=1)]\nTensor(shape={3}, mem=[0,1,0], gpu=1)"]
+MATMUL_Output_09Ruk -> TENSOR_MATMUL_Output_09Ruk_1M5Ji
+MUL_MATMUL_Output_09Ruk_1sdi9[label="*"]
+MATMUL_Output_09Ruk -> MUL_MATMUL_Output_09Ruk_1sdi9
+MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg[label="[&]\nTensor(shape={1}, mem=[570], gpu=1)"]
+MUL_MATMUL_Output_09Ruk_1sdi9 -> MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg
+MUL_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3Lh83[label="[*]\nTensor(shape={3}, mem=[5,10,15], gpu=1)"]
+MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg -> MUL_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3Lh83
+TENSOR_MUL_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3Lh83_4xukO[label="[Tensor(shape={1}, mem=[5], gpu=1)]\nTensor(shape={1}, mem=[5], gpu=1)"]
+MUL_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3Lh83 -> TENSOR_MUL_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3Lh83_4xukO
+TENSOR_MUL_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3Lh83_4WetS[label="[Tensor(shape={3}, mem=[1,2,3], gpu=1)]\nTensor(shape={3}, mem=[1,2,3], gpu=1)"]
+MUL_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3Lh83 -> TENSOR_MUL_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3Lh83_4WetS
+PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4[label="[+]\nTensor(shape={3}, mem=[11,17,23], gpu=1)"]
+MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg -> PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4
+MUL_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4fFqa[label="[*]\nTensor(shape={3}, mem=[5,10,15], gpu=1)"]
+PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4 -> MUL_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4fFqa
+TENSOR_MUL_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4fFqa_5kY57[label="[Tensor(shape={1}, mem=[5], gpu=1)]\nTensor(shape={1}, mem=[5], gpu=1)"]
+MUL_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4fFqa -> TENSOR_MUL_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4fFqa_5kY57
+TENSOR_MUL_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4fFqa_5gY9T[label="[Tensor(shape={3}, mem=[1,2,3], gpu=1)]\nTensor(shape={3}, mem=[1,2,3], gpu=1)"]
+MUL_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4fFqa -> TENSOR_MUL_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4fFqa_5gY9T
+TENSOR_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4QVtt[label="[Tensor(shape={3}, mem=[6,7,8], gpu=1)]\nTensor(shape={3}, mem=[6,7,8], gpu=1)"]
+PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4 -> TENSOR_PLUS_MATMUL_MUL_MATMUL_Output_09Ruk_1sdi9_2ZOCg_3oyg4_4QVtt
+TENSOR_MUL_MATMUL_Output_09Ruk_1sdi9_2NxKf[label="[Tensor(shape={3,2}, mem=[0.01,0.32,-3.43,3.2,4.8,0.0002], gpu=1)]\nTensor(shape={3,2}, mem=[0.01,0.32,-3.43,3.2,4.8,0.0002], gpu=1)"]
+MUL_MATMUL_Output_09Ruk_1sdi9 -> TENSOR_MUL_MATMUL_Output_09Ruk_1sdi9_2NxKf
 }

@@ -18,6 +18,8 @@ Tensor gpu_tensor_tanh(const Tensor &a);
 Tensor gpu_tensor_relu(const Tensor &a);
 Tensor gpu_tensor_sin(const Tensor &a);
 Tensor gpu_tensor_cos(const Tensor &a);
+Tensor gpu_tensor_outer(const Tensor &a, const Tensor &b);
+void   gpu_mat2d_transpose(Tensor &a);
 
 void gpu_reset();
 

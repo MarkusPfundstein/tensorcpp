@@ -25,6 +25,10 @@ class Tensor
 
     unsigned int dimensions() const;
 
+    bool is_scalar() const;
+    bool is_vec() const;
+    bool is_mat2d() const;
+
     Tensor& operator=(const Tensor& other);
     Tensor& operator=(Tensor&& other);
 
@@ -45,7 +49,9 @@ class Tensor
     Tensor mul_backwards(const Tensor &other) const;
 
     // a @ b (matmul)
+    Tensor matmul(const Tensor &b) const;
     Tensor operator&(const Tensor &b) const;
+    Tensor matmul_backwards(const Tensor &b) const;
 
     // a * scalar
     Tensor mul(float sclar) const;
@@ -55,8 +61,14 @@ class Tensor
     Tensor pow(float power) const;
     Tensor pow(const Tensor& power) const;
 
+    Tensor outer(const Tensor &b) const;
+
     // tanh()
     Tensor tanh() const;
+
+    // transpose
+    const Tensor& T_();
+    Tensor T() const;
 
     // dot(a, b)
     static float dot(const Tensor &a, const Tensor &b);

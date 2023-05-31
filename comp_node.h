@@ -86,7 +86,7 @@ class GraphNode : public std::enable_shared_from_this<GraphNode>
     std::string label() const;    
     private:
 
-    void backward_step(const Tensor &last_result);
+    void backward_step(Tensor &last_result);
 
     std::string str() const;
     void draw(std::ostream& os, const std::string &parent_name, int depth) const;

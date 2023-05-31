@@ -44,6 +44,59 @@ static std::vector<float> generate_data(size_t size)
     return data;
 }
 
+void test_dims()
+{
+    printf("test_dims\n");
+
+    Tensor t1({3,2}, {1,2,3,4,5,6});
+    assert(t1.dimensions() == 2);
+    assert(t1.is_mat2d());
+
+    Tensor t2({4}, {1,2,3,4});
+    assert(t2.dimensions() == 1);
+    assert(t2.is_vec());
+
+    Tensor t3({4,1}, {1,2,3,4});
+    assert(t3.dimensions() == 1);
+    assert(t3.is_vec());
+
+    Tensor t4({1,4}, {1,2,3,4});
+    assert(t4.dimensions() == 1);
+    assert(t4.is_vec());
+
+    Tensor t5({1,4,1}, {1,2,3,4});
+    assert(t5.dimensions() == 1);
+    assert(t5.is_vec());
+
+    Tensor t6({1,4,2}, {1,2,3,4,5,6,7,8});
+    assert(t6.dimensions() == 2);
+    assert(t6.is_mat2d());
+
+    Tensor t7({2,2,2}, {1,2,3,4,5,6,7,8});
+    assert(t7.dimensions() == 3);
+    assert(!t7.is_vec() && !t7.is_mat2d());
+
+    Tensor t8({1,4,2,1}, {1,2,3,4,5,6,7,8});
+    assert(t8.dimensions() == 2);
+    assert(t8.is_mat2d());
+
+    Tensor t9({1}, {5}, false);
+    assert(t9.dimensions() == 1);
+    assert(t9.is_scalar());
+
+    Tensor t10({1,1}, {5}, false);
+    assert(t10.dimensions() == 1);
+    assert(t10.is_scalar());
+
+    Tensor t11({1,1,1}, {5}, false);
+    assert(t11.dimensions() == 1);
+    assert(t11.is_scalar());
+
+    Tensor t12({1,1,1,1}, {5}, false);
+    assert(t12.dimensions() == 1);
+    assert(t12.is_scalar());
+}
+
 void test_move_constructor_cpu()
 {
     printf("test_move_constructor_cpu\n");
@@ -774,9 +827,7 @@ void test_mul_mat_with_vec_gpu()
 {
     printf("test_mul_mat_with_vec_gpu\n");
 
-    Tensor t1({3,2}, {0.01, 0.32,
-                      -3.43, 3.2,
-                      4.8, 0.0002}, true);
+    Tensor t1({3,2}, {0.01, 0.32, -3.43, 3.2, 4.8, 0.0002}, true);
     Tensor t2({3}, {0,1,0}, true);
 
     Tensor r1 = t2 & t1;
@@ -1011,9 +1062,58 @@ void test_relu_gpu()
     assert(check_memory_against_array({0.3015,  0.7785, 0.0, 0.0}, b));
 }
 
+void test_vector_outer()
+{
+    printf("test_vector_outer\n");
+
+    Tensor a({2}, {0.4, 0.3});
+    Tensor b({3}, {0.01, -0.42, 2.2});
+
+    Tensor c = a.outer(b);
+
+    assert(check_memory_against_array({0.004,-0.168,0.88,0.003,-0.126,0.66}, c));
+}
+
+void test_mat2d_transpose()
+{
+    printf("test_mat2d_transpose\n");
+    Tensor t({2,3}, {1,2,3,4,5,6});
+
+    Tensor t2 = t.T();
+    
+    assert(t.shape == std::vector<int>({2,3}));
+    assert(t2.memory != t.memory);
+    assert(t2.shape == std::vector<int>({3,2}));
+
+    t.T_();
+
+    assert(t.shape == std::vector<int>({3,2}));
+}
+
+void test_matmul_with_T()
+{
+    printf("test_matmul_with_T\n");
+    Tensor gr({4,3}, {3,1.2,-0.5,-2.2,1.8,0.25,3,1.2,-0.5,-2.2,1.8,0.25});
+    Tensor parent_grad({3}, {0.01, -0.42, 2.2});
+
+    Tensor t = gr.T();
+
+    printf("t: %s\n", t.str().c_str());
+    printf("p: %s\n", parent_grad.str().c_str());
+
+    Tensor g2 = parent_grad & t;
+
+    printf("g2: %s\n", g2.str().c_str());
+
+    assert(g2.is_vec() && g2.shape[0] == 4);
+    assert(check_memory_against_array({-1.5740, -0.2280, -1.5740, -0.2280}, g2));
+}
+
 int main(int argc, char **argv)
 {
     printf("RUN %s\n", argv[0]);
+
+    test_dims();
 
     test_move_constructor_cpu();
     test_move_constructor_gpu();
@@ -1029,6 +1129,8 @@ int main(int argc, char **argv)
 
     test_3d_add_cpu();
     test_3d_add_gpu();
+
+    test_mat2d_transpose();
 
     test_dot_product_cpu();
     test_dot_product_gpu();
@@ -1068,6 +1170,10 @@ int main(int argc, char **argv)
 
     test_relu_cpu();
     test_relu_gpu();
+
+    test_vector_outer();
+
+    test_matmul_with_T();
 
     printf("!!!!! ALL TESTS PASSED !!!!!\n");
     

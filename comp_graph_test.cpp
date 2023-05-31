@@ -29,13 +29,9 @@ bool check_memory_against_array(std::vector<float> res, const TensorPtr& t, floa
     for (unsigned long i = 0; i < t->nelems; ++i) {
         if (!within_acceptable_error(res[i], t->memory[i], acceptable_error)) {
             failure_index = i;
-            break;
+            printf("check_memory_against_array FAILURE. m[%ld] = %f. Should be: %f\n",
+                i, t->memory[i], res[i]);
         }
-    }
-
-    if (failure_index >= 0) {
-        printf("check_memory_against_array FAILURE. m[%d] = %f. Should be: %f\n",
-               failure_index, t->memory[failure_index], res[failure_index]);
     }
 
     return failure_index == -1;
@@ -556,64 +552,195 @@ void test_derivate_simple_scalar_add_sin()
     assert(within_acceptable_error(x.grad()->memory[0], -0.8056));
 }
 
-void test_derivative_2()
+void test_derivate_dot()
 {
-    printf("test_derivative_2\n");
+    printf("test_derivate_dot\n");
 
-    GraphNode y(Tensor({1}, {1.0}, false));
+    GraphNode a(Tensor({3}, {5.0,3.0,2.0}, false));
+    GraphNode x(Tensor({3}, {3.0,1.0,-2.2}, false));
 
-    GraphNode x(Tensor({2}, {1.0, 0.0}));
-    GraphNode w(Tensor({2}, {0.32, -0.49}));
+    a.set_require_grad(true);
+    x.set_require_grad(true);
 
-    GraphNode z = x & w;
+    GraphNode r = a & x;
 
-    GraphNode o = z.relu();
+    r.eval();
 
-    GraphNode J = (y - o).pow(2.0) * 0.5f;
+    r.backward();
 
-    J.eval();
+    assert(a.grad() != nullptr);
+    assert(check_memory_against_array({3.0, 1.0, -2.2}, a.grad()));
 
-    std::ofstream of;
-    of.open("graphs/test_derivative_1.dot", std::ios::out | std::ios::trunc);
-    J.draw(of);
-    of.close();
+    assert(x.grad() != nullptr);
+    assert(check_memory_against_array({5.0, 3.0, 2.0}, x.grad()));
 }
+
+void test_derivate_matmul()
+{
+    printf("test_derivate_matmul\n");
+
+    GraphNode h1(Tensor({2,3}, {3.0, 1.2, -0.5, -2.2, 1.8, 0.25}, false));
+    GraphNode h2(Tensor({3}, {0.01, -0.42, 2.2}, false));
+    GraphNode x(Tensor({2}, {0.4, 0.3}, false));
+
+
+    h1.set_require_grad(true);
+    h2.set_require_grad(true);
+
+    GraphNode r = (x & h1) & h2;
+
+    r.eval();
+
+    r.backward();
+
+    assert(h1.grad() != nullptr);
+    assert(check_memory_against_array({0.0040, -0.1680, 0.8800, 0.0030, -0.1260, 0.6600}, h1.grad()));
+
+    assert(h2.grad() != nullptr);
+    assert(check_memory_against_array({0.54, 1.02, -0.1250}, h2.grad()));
+}
+
+void test_derivate_matmul_with_activations()
+{
+    printf("test_derivate_matmul_with_activations\n");
+
+    GraphNode h1(Tensor({2,3}, {3.0, 1.2, -0.5, -2.2, 1.8, 0.25}, false));
+    GraphNode h2(Tensor({3}, {0.01, -0.42, 2.2}, false));
+    GraphNode x(Tensor({2}, {0.4, 0.3}, false));
+
+
+    h1.set_require_grad(true);
+    h2.set_require_grad(true);
+
+    GraphNode r = ((x & h1).sin() & h2).sin();
+
+    r.eval();
+
+    r.backward();
+
+    assert(h1.grad() != nullptr);
+    assert(check_memory_against_array({0.0028,-0.0712,0.7070,0.0021,-0.0534,0.5303}, h1.grad()));
+
+    assert(h2.grad() != nullptr);
+    assert(check_memory_against_array({0.4163,0.6900,-0.1010}, h2.grad()));
+}
+
+void test_derivate_matmul_with_multiple_mats()
+{
+    printf("test_derivate_matmul_with_multiple_mats\n");
+
+    GraphNode h1(Tensor({2,4}, {0.1, 0.2, -0.1, 0.5, 0.1, -0.3, 0.8, 1.8}, false));
+    GraphNode h2(Tensor({4,3}, {3.0, 1.2, -0.5, -2.2, 1.8, 0.25, 3.0, 1.2, -0.5, -2.2, 1.8, 0.25}, false));
+    GraphNode h3(Tensor({3}, {0.01, -0.42, 2.2}, false));
+    GraphNode x(Tensor({2}, {0.4, 0.3}, false));
+
+
+    h1.set_require_grad(true);
+    h2.set_require_grad(true);
+    h3.set_require_grad(true);
+
+    GraphNode r = (((x & h1) & h2) & h3);
+
+    r.eval();
+
+    r.backward();
+
+    printf("h1=%s\n", h1.grad()->str().c_str());
+    printf("h2=%s\n", h2.grad()->str().c_str());
+    printf("h3=%s\n", h3.grad()->str().c_str());
+
+    assert(h2.grad() != nullptr);
+    assert(check_memory_against_array({ 7.0000e-04, -2.9400e-02,  1.5400e-01,
+                                       -1.0000e-04,  4.2000e-03, -2.2000e-02,
+                                        2.0000e-03, -8.4000e-02,  4.4000e-01,
+                                        7.4000e-03, -3.1080e-01,  1.6280e+00}, h2.grad()));
+    
+    assert(h3.grad() != nullptr);
+    assert(check_memory_against_array({-0.7960,  1.6380,  0.0475}, h3.grad()));
+
+    assert(h1.grad() != nullptr);
+    assert(check_memory_against_array({0-0.6296, -0.0912, -0.6296, -0.0912, -0.4722, -0.0684, -0.4722, -0.0684}, h1.grad()));
+}
+
+void test_derivate_matmul_with_multiple_mats_and_activations()
+{
+    printf("test_derivate_matmul_with_multiple_mats_and_activations\n");
+
+    GraphNode h1(Tensor({2,4}, {0.1, 0.2, -0.1, 0.5, 0.1, -0.3, 0.8, 1.8}, false));
+    GraphNode h2(Tensor({4,3}, {3.0, 1.2, -0.5, -2.2, 1.8, 0.25, 3.0, 1.2, -0.5, -2.2, 1.8, 0.25}, false));
+    GraphNode h3(Tensor({3}, {0.01, -0.42, 2.2}, false));
+    GraphNode x(Tensor({2}, {0.4, 0.3}, false));
+
+
+    h1.set_require_grad(true);
+    h2.set_require_grad(true);
+    h3.set_require_grad(true);
+
+    GraphNode r = (((x & h1).sin() & h2).sin() & h3).sin();
+
+    r.eval();
+
+    r.backward();
+
+    printf("h1=%s\n", h1.grad()->str().c_str());
+    printf("h2=%s\n", h2.grad()->str().c_str());
+    printf("h3=%s\n", h3.grad()->str().c_str());
+
+    assert(h2.grad() != nullptr);
+    assert(check_memory_against_array({ 5.1973e-04, -1.4518e-03,  1.4417e-01,
+                                       -7.4307e-05,  2.0756e-04, -2.0613e-02,
+                                        1.4763e-03, -4.1237e-03,  4.0952e-01,
+                                        5.0105e-03, -1.3996e-02,  1.3899e+00}, h2.grad()));
+    
+    assert(h3.grad() != nullptr);
+    assert(check_memory_against_array({-0.5715,  0.9361,  0.0298}, h3.grad()));
+
+    assert(h1.grad() != nullptr);
+    assert(check_memory_against_array({-0.4123,  0.1846, -0.4051,  0.1364,
+                                       -0.3092,  0.1385, -0.3038,  0.1023}, h1.grad()));
+}
+
 
 int main(int argc, char **argv)
 {
     printf("RUN %s\n", argv[0]);
 
     test_compnode_add_cpu();
-    //test_compnode_add_gpu();
+    test_compnode_add_gpu();
 
     test_compnode_dot_cpu();
 
     test_graphnodes_cpu();
 
     test_graphnodes_interface_cpu();
-    //test_graphnodes_interface_gpu();
+    test_graphnodes_interface_gpu();
 
     test_graphnodes_min();
     test_graphnodes_minself();
     test_graphnodes_div();
 
     test_graphnodes_tanh_cpu();
-    //test_graphnodes_tanh_gpu();
+    test_graphnodes_tanh_gpu();
 
     test_graphnodes_pow_cpu();
-    //test_graphnodes_pow_gpu();
+    test_graphnodes_pow_gpu();
 
     test_draw();
     test_network_XOR_with_pretrained_weights_cpu_lazy();
     test_network_XOR_with_pretrained_weights_cpu_eager();
-    //test_network_XOR_with_pretrained_weights_gpu_lazy();
-    //test_network_XOR_with_pretrained_weights_gpu_eager();
+    test_network_XOR_with_pretrained_weights_gpu_lazy();
+    test_network_XOR_with_pretrained_weights_gpu_eager();
 
     test_derivative_sin();
     test_derivative_scalar_mul();
     test_derivate_simple_scalar_mul_sin();
     test_derivate_simple_scalar_add_sin();
-    //test_derivative_1();
+
+    test_derivate_dot();
+    test_derivate_matmul();
+    test_derivate_matmul_with_activations();
+    test_derivate_matmul_with_multiple_mats();
+    test_derivate_matmul_with_multiple_mats_and_activations();
 
     printf("!!!!! ALL TESTS PASSED !!!!!\n");
 
